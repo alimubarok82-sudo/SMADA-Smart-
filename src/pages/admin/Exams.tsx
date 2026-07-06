@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, Search, X, Check, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 interface Exam {
@@ -22,6 +22,11 @@ interface Exam {
 export default function Exams() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    activeStudents: 0,
+    avgGrade: 0,
+    totalAnswers: 0
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newExam, setNewExam] = useState({ 
@@ -34,7 +39,47 @@ export default function Exams() {
 
   useEffect(() => {
     fetchExams();
+    fetchStats();
   }, []);
+
+  const fetchStats = async () => {
+    try {
+      // 1. Total Students (Deduplicated)
+      const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'siswa')));
+      const uniqueStudentNames = new Set();
+      studentsSnap.docs.forEach(d => {
+        const data = d.data();
+        uniqueStudentNames.add(`${data.displayName}-${data.classId}`);
+      });
+      
+      // 2. Avg Grade
+      const resultsSnap = await getDocs(collection(db, 'exam_results'));
+      const submissionsSnap = await getDocs(query(collection(db, 'submissions'), where('status', '==', 'graded')));
+      
+      let totalPoints = 0;
+      let totalCount = 0;
+
+      resultsSnap.docs.forEach(doc => {
+        totalPoints += doc.data().score || 0;
+        totalCount++;
+      });
+
+      submissionsSnap.docs.forEach(doc => {
+        totalPoints += doc.data().grade || 0;
+        totalCount++;
+      });
+
+      const avgGrade = totalCount > 0 ? (totalPoints / totalCount).toFixed(1) : '0';
+
+      setStats({
+        activeStudents: uniqueStudentNames.size,
+        avgGrade: parseFloat(avgGrade),
+        totalAnswers: totalCount
+      });
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  };
 
   const fetchExams = async () => {
     try {
@@ -114,8 +159,8 @@ export default function Exams() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           { label: 'Total Ujian', value: exams.length.toString(), icon: <FileText className="text-blue-500" />, sub: 'Tahun Ajaran 2023/2024' },
-          { label: 'Siswa Aktif', value: '840', icon: <Users className="text-emerald-500" />, sub: 'Terdaftar di Sistem' },
-          { label: 'Rata-rata Nilai', value: '78.4', icon: <BarChart3 className="text-amber-500" />, sub: 'Dari 12.5k Jawaban' },
+          { label: 'Siswa Aktif', value: stats.activeStudents.toString(), icon: <Users className="text-emerald-500" />, sub: 'Terdaftar di Sistem' },
+          { label: 'Rata-rata Nilai', value: stats.avgGrade.toString(), icon: <BarChart3 className="text-amber-500" />, sub: `Dari ${stats.totalAnswers} Jawaban` },
         ].map((stat, i) => (
           <Card key={i} className="rounded-3xl border-slate-100 shadow-sm bg-white overflow-hidden">
             <CardContent className="p-6">
