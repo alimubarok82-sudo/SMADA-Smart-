@@ -6,6 +6,7 @@ import { auth, db } from '../../lib/firebase';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent } from '../../components/ui/card';
+import { useAuth } from '../../contexts/AuthContext';
 import { User as UserIcon, Lock, Mail, KeyRound } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -19,6 +20,7 @@ const STUDENTS: Record<string, string[]> = {
 
 export default function Login() {
   const navigate = useNavigate();
+  const { loginDemo } = useAuth();
   const [mode, setMode] = useState<'siswa' | 'guru'>('siswa');
   
   // Siswa State
@@ -59,6 +61,11 @@ export default function Login() {
         });
         navigate('/dashboard');
       } catch (createErr: any) {
+        if (createErr.code === 'auth/operation-not-allowed') {
+          loginDemo('siswa', selectedName, selectedClass);
+          navigate('/dashboard');
+          return;
+        }
         if (createErr.code === 'auth/weak-password') {
           setError('Password minimal harus 6 karakter.');
         } else if (createErr.code === 'auth/email-already-in-use') {
@@ -97,6 +104,11 @@ export default function Login() {
         });
         navigate('/dashboard');
       } catch (createErr: any) {
+        if (createErr.code === 'auth/operation-not-allowed') {
+          loginDemo('guru', 'Guru SMADA');
+          navigate('/dashboard');
+          return;
+        }
         if (createErr.code === 'auth/weak-password') {
           setError('Password minimal harus 6 karakter.');
         } else if (createErr.code === 'auth/email-already-in-use') {

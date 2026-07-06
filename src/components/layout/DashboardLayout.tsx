@@ -18,11 +18,16 @@ import { signOut } from 'firebase/auth';
 import { Button } from '../ui/button';
 
 export const DashboardLayout = () => {
-  const { user } = useAuth();
+  const { user, logoutDemo } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
+    if (localStorage.getItem('demo_user')) {
+      logoutDemo();
+      navigate('/login');
+      return;
+    }
     await signOut(auth);
     navigate('/login');
   };
