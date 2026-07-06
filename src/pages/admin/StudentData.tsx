@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Download, Upload, Pencil, Trash2, UserPlus, Loader2, Plus } from 'lucide-react';
-import { motion } from 'motion/react';
-import { collection, getDocs, query, where, addDoc } from 'firebase/firestore';
+import { Download, Upload, Pencil, Trash2, UserPlus, Loader2, Plus, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { collection, getDocs, query, where, addDoc, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -15,15 +15,37 @@ interface Student {
 }
 
 export default function StudentData() {
-  const [selectedClass, setSelectedClass] = useState('XE2');
+  const [selectedClass, setSelectedClass] = useState('');
   const [nama, setNama] = useState('');
-  const [classes, setClasses] = useState<string[]>(['XE1', 'XE2', 'XE3', 'XE4']);
+  const [password, setPassword] = useState('');
+  const [classes, setClasses] = useState<string[]>([]);
   const [isAddingClass, setIsAddingClass] = useState(false);
   const [newClassName, setNewClassName] = useState('');
   const [studentsByClass, setStudentsByClass] = useState<Record<string, Student[]>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<(Student & { password?: string }) | null>(null);
   const { user } = useAuth();
+
+  const fetchClasses = async () => {
+    try {
+      const q = query(collection(db, 'classes'), orderBy('name'));
+      const snap = await getDocs(q);
+      const classList = snap.docs.map(doc => doc.data().name);
+      
+      if (classList.length === 0) {
+        // Init with defaults if empty
+        const defaults = ['XE1', 'XE2', 'XE3', 'XE4'];
+        setClasses(defaults);
+        setSelectedClass(defaults[0]);
+      } else {
+        setClasses(classList);
+        setSelectedClass(classList[0]);
+      }
+    } catch (error) {
+      console.error("Error fetching classes:", error);
+    }
+  };
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -36,8 +58,9 @@ export default function StudentData() {
         studentsData.push({
           id: doc.id,
           displayName: data.displayName || 'Unknown',
-          classId: data.classId || 'Unassigned'
-        });
+          classId: data.classId || 'Unassigned',
+          password: data.password || ''
+        } as any);
       });
       
       const grouped = studentsData.reduce((acc, student) => {
@@ -53,15 +76,6 @@ export default function StudentData() {
         grouped[key].sort((a, b) => a.displayName.localeCompare(b.displayName));
       });
       
-      // Add default empty classes if missing
-      const fetchedClasses = Object.keys(grouped);
-      const allClasses = Array.from(new Set(['XE1', 'XE2', 'XE3', 'XE4', ...fetchedClasses, ...classes])).sort();
-      
-      allClasses.forEach(c => {
-        if (!grouped[c]) grouped[c] = [];
-      });
-
-      setClasses(allClasses);
       setStudentsByClass(grouped);
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -71,7 +85,11 @@ export default function StudentData() {
   };
 
   useEffect(() => {
-    fetchStudents();
+    const init = async () => {
+      await fetchClasses();
+      await fetchStudents();
+    };
+    init();
   }, []);
 
   const handleSimpan = async () => {
@@ -82,14 +100,65 @@ export default function StudentData() {
         displayName: nama.trim(),
         classId: selectedClass,
         role: 'siswa',
+        password: password.trim() || '123456', // Default password if empty
         createdAt: new Date().toISOString()
       });
       setNama('');
+      setPassword('');
       fetchStudents();
     } catch (error) {
       console.error("Error saving student:", error);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAddClass = async () => {
+    const trimmed = newClassName.trim();
+    if (trimmed && !classes.includes(trimmed)) {
+      try {
+        await addDoc(collection(db, 'classes'), { name: trimmed });
+        const updatedClasses = [...classes, trimmed].sort();
+        setClasses(updatedClasses);
+        setSelectedClass(trimmed);
+        if (!studentsByClass[trimmed]) {
+          setStudentsByClass(prev => ({...prev, [trimmed]: []}));
+        }
+        setIsAddingClass(false);
+        setNewClassName('');
+      } catch (error) {
+        console.error("Error adding class:", error);
+      }
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!editingStudent || !editingStudent.displayName.trim()) return;
+    setSaving(true);
+    try {
+      const { doc: firestoreDoc, updateDoc } = await import('firebase/firestore');
+      await updateDoc(firestoreDoc(db, 'users', editingStudent.id), {
+        displayName: editingStudent.displayName.trim(),
+        classId: editingStudent.classId,
+        password: editingStudent.password || '123456'
+      });
+      setEditingStudent(null);
+      fetchStudents();
+    } catch (error) {
+      console.error("Error updating student:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Hapus data siswa ini?')) return;
+    try {
+      const { doc: firestoreDoc, deleteDoc } = await import('firebase/firestore');
+      await deleteDoc(firestoreDoc(db, 'users', id));
+      fetchStudents();
+    } catch (error) {
+      console.error("Error deleting student:", error);
     }
   };
 
@@ -129,17 +198,7 @@ export default function StudentData() {
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      if (newClassName.trim() && !classes.includes(newClassName.trim())) {
-                        setClasses(prev => Array.from(new Set([...prev, newClassName.trim()])).sort());
-                        setSelectedClass(newClassName.trim());
-                        if (!studentsByClass[newClassName.trim()]) {
-                          setStudentsByClass(prev => ({...prev, [newClassName.trim()]: []}));
-                        }
-                      } else if (classes.includes(newClassName.trim())) {
-                        setSelectedClass(newClassName.trim());
-                      }
-                      setIsAddingClass(false);
-                      setNewClassName('');
+                      handleAddClass();
                     } else if (e.key === 'Escape') {
                       setIsAddingClass(false);
                     }
@@ -148,19 +207,7 @@ export default function StudentData() {
                 <Button 
                   size="sm" 
                   className="h-11 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl"
-                  onClick={() => {
-                    if (newClassName.trim() && !classes.includes(newClassName.trim())) {
-                      setClasses(prev => Array.from(new Set([...prev, newClassName.trim()])).sort());
-                      setSelectedClass(newClassName.trim());
-                      if (!studentsByClass[newClassName.trim()]) {
-                        setStudentsByClass(prev => ({...prev, [newClassName.trim()]: []}));
-                      }
-                    } else if (classes.includes(newClassName.trim())) {
-                      setSelectedClass(newClassName.trim());
-                    }
-                    setIsAddingClass(false);
-                    setNewClassName('');
-                  }}
+                  onClick={handleAddClass}
                 >
                   Ok
                 </Button>
@@ -197,8 +244,10 @@ export default function StudentData() {
             )}
           </div>
           <Input 
-            placeholder="Password (Opsional)" 
-            type="password"
+            placeholder="Password (Opsional, Default: 123456)" 
+            type="text"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className="rounded-xl border-slate-200 h-11"
           />
           <Button 
@@ -250,14 +299,21 @@ export default function StudentData() {
                       <div className="divide-y divide-slate-100">
                         {students.map((student, idx) => (
                           <div key={student.id} className="flex items-center justify-between p-3 px-4 hover:bg-slate-50 transition-colors group cursor-pointer">
-                            <div className="text-xs font-medium text-slate-700">
+                            <div className="text-xs font-medium text-slate-700" onClick={() => setEditingStudent(student)}>
                               <span className="text-slate-400 mr-1.5">{idx + 1}.</span> {student.displayName}
+                              <span className="ml-2 text-[10px] text-slate-400 font-normal">({(student as any).password || '***'})</span>
                             </div>
                             <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-md transition-colors">
+                              <button 
+                                onClick={() => setEditingStudent(student)}
+                                className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-md transition-colors"
+                              >
                                 <Pencil className="w-3.5 h-3.5" />
                               </button>
-                              <button className="text-red-500 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-md transition-colors">
+                              <button 
+                                onClick={() => handleDelete(student.id)}
+                                className="text-red-500 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-md transition-colors"
+                              >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -274,6 +330,75 @@ export default function StudentData() {
           </div>
         )}
       </div>
+
+      {/* Edit Student Modal */}
+      <AnimatePresence>
+        {editingStudent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h3 className="text-lg font-bold text-slate-800">Edit Profil Siswa</h3>
+                <button onClick={() => setEditingStudent(null)} className="text-slate-400 hover:text-slate-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nama Siswa</label>
+                  <Input 
+                    value={editingStudent.displayName}
+                    onChange={(e) => setEditingStudent({...editingStudent, displayName: e.target.value})}
+                    className="rounded-xl border-slate-200"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Kelas</label>
+                  <select 
+                    className="w-full h-11 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={editingStudent.classId}
+                    onChange={(e) => setEditingStudent({...editingStudent, classId: e.target.value})}
+                  >
+                    {classes.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Password Baru / Reset</label>
+                  <Input 
+                    value={editingStudent.password || ''}
+                    onChange={(e) => setEditingStudent({...editingStudent, password: e.target.value})}
+                    className="rounded-xl border-slate-200 font-mono"
+                  />
+                  <p className="text-[10px] text-slate-400 italic">Siswa akan menggunakan password ini untuk login.</p>
+                </div>
+              </div>
+              <div className="p-6 pt-2 flex gap-3">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 rounded-xl h-12"
+                  onClick={() => setEditingStudent(null)}
+                >
+                  Batal
+                </Button>
+                <Button 
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-12"
+                  onClick={handleUpdate}
+                  disabled={saving}
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Simpan Perubahan
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -63,6 +63,16 @@
         "columnNumber": { "type": "number" },
         "category": { "type": "string" }
       }
+    },
+    "Class": {
+      "title": "Class",
+      "description": "School class",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
     }
   },
   "firestore": {
@@ -81,6 +91,10 @@
     "/exam_results/{resultId}": {
       "schema": "ExamResult",
       "description": "Collection of exam results"
+    },
+    "/classes/{classId}": {
+      "schema": "Class",
+      "description": "Collection of school classes"
     }
   }
 }

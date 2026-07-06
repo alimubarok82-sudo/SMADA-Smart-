@@ -1,27 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, query, where, orderBy } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent } from '../../components/ui/card';
 import { useAuth } from '../../contexts/AuthContext';
-import { User as UserIcon, Lock, Mail, KeyRound } from 'lucide-react';
+import { User as UserIcon, Lock, Mail, KeyRound, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
-
-const CLASSES = ['XE1', 'XE2', 'XE3', 'XII IPA 1'];
-const STUDENTS: Record<string, string[]> = {
-  'XE1': ['Budi Santoso', 'Andi Saputra'],
-  'XE2': ['Citra Kirana', 'Dewi Lestari'],
-  'XE3': ['Ahmad Dani', 'Laras Putri', 'Siti Aminah'],
-  'XII IPA 1': ['Gilang Ramadhan', 'Hendra Wijaya']
-};
 
 export default function Login() {
   const navigate = useNavigate();
   const { loginDemo, user } = useAuth();
   const [mode, setMode] = useState<'siswa' | 'guru'>('siswa');
+
+  // Firestore Data
+  const [dbClasses, setDbClasses] = useState<string[]>([]);
+  const [dbStudents, setDbStudents] = useState<Record<string, { id: string, name: string, password?: string }[]>>({});
+  const [dataLoading, setDataLoading] = useState(true);
+
+  useEffect(() => {
+    fetchInitialData();
+  }, []);
+
+  const fetchInitialData = async () => {
+    try {
+      // Fetch Classes
+      const classesSnap = await getDocs(query(collection(db, 'classes'), orderBy('name')));
+      const classList = classesSnap.docs.map(d => d.data().name);
+      
+      // Fetch all students to group them
+      const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'siswa')));
+      const grouped: Record<string, { id: string, name: string, password?: string }[]> = {};
+      
+      studentsSnap.docs.forEach(d => {
+        const data = d.data();
+        const cId = data.classId || 'Unassigned';
+        if (!grouped[cId]) grouped[cId] = [];
+        grouped[cId].push({ 
+          id: d.id, 
+          name: data.displayName || 'Unknown',
+          password: data.password
+        });
+      });
+
+      // Sort students in each class
+      Object.keys(grouped).forEach(c => {
+        grouped[c].sort((a, b) => a.name.localeCompare(b.name));
+      });
+
+      setDbClasses(classList.length > 0 ? classList : ['XE1', 'XE2', 'XE3', 'XE4']);
+      setDbStudents(grouped);
+      if (classList.length > 0) setSelectedClass(classList[0]);
+    } catch (error) {
+      console.error("Error fetching login data:", error);
+    } finally {
+      setDataLoading(false);
+    }
+  };
 
   React.useEffect(() => {
     if (user) {
@@ -30,7 +67,7 @@ export default function Login() {
   }, [user, navigate]);
   
   // Siswa State
-  const [selectedClass, setSelectedClass] = useState('XE3');
+  const [selectedClass, setSelectedClass] = useState('');
   const [selectedName, setSelectedName] = useState('');
   
   // Shared State
@@ -48,20 +85,33 @@ export default function Login() {
     setLoading(true);
     setError('');
 
+    // Find student in our db list to check password
+    const studentObj = dbStudents[selectedClass]?.find(s => s.name === selectedName);
+    
+    // For this app, we check password against Firestore directly first
+    // then use Firebase Auth for session management
+    if (studentObj && studentObj.password && studentObj.password !== password) {
+      setError('Password salah.');
+      setLoading(false);
+      return;
+    }
+
     const syntheticEmail = `${selectedName.toLowerCase().replace(/\s+/g, '.')}@siswa.smada.id`;
 
     try {
       await signInWithEmailAndPassword(auth, syntheticEmail, password);
     } catch (err: any) {
-      // Auto-register for demo purposes if login fails
+      // Auto-register with Firebase Auth using the password from Firestore
       try {
         const cred = await createUserWithEmailAndPassword(auth, syntheticEmail, password);
         await updateProfile(cred.user, { displayName: selectedName });
+        // Use the existing Firestore document or create new one
         await setDoc(doc(db, 'users', cred.user.uid), {
           email: syntheticEmail,
           displayName: selectedName,
           role: 'siswa',
           classId: selectedClass,
+          password: password, // Keep password in firestore for easy retrieval by teacher
           createdAt: new Date().toISOString()
         });
       } catch (createErr: any) {
@@ -69,10 +119,8 @@ export default function Login() {
           loginDemo('siswa', selectedName, selectedClass, syntheticEmail);
           return;
         }
-        if (createErr.code === 'auth/weak-password') {
-          setError('Password minimal harus 6 karakter.');
-        } else if (createErr.code === 'auth/email-already-in-use') {
-          setError('Nama ini sudah terdaftar. Periksa kembali password Anda.');
+        if (createErr.code === 'auth/email-already-in-use') {
+          setError('Siswa ini sudah memiliki akun Auth tapi password salah.');
         } else {
           setError('Login gagal. ' + createErr.message);
         }
@@ -152,8 +200,10 @@ export default function Login() {
                         setSelectedClass(e.target.value);
                         setSelectedName('');
                       }}
+                      disabled={dataLoading}
                     >
-                      {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                      <option value="">-- Pilih Kelas --</option>
+                      {dbClasses.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
 
@@ -163,10 +213,11 @@ export default function Login() {
                       className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                       value={selectedName}
                       onChange={(e) => setSelectedName(e.target.value)}
+                      disabled={dataLoading || !selectedClass}
                     >
-                      <option value="">-- Cari Namamu di {selectedClass} --</option>
-                      {STUDENTS[selectedClass]?.map(name => (
-                        <option key={name} value={name}>{name}</option>
+                      <option value="">-- Cari Namamu di {selectedClass || '...'} --</option>
+                      {dbStudents[selectedClass]?.map(s => (
+                        <option key={s.id} value={s.name}>{s.name}</option>
                       ))}
                     </select>
                   </div>

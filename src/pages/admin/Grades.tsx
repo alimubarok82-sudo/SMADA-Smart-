@@ -18,14 +18,38 @@ interface StudentGrade {
 }
 
 export default function Grades() {
-  const [selectedClass, setSelectedClass] = useState('XE2');
+  const [selectedClass, setSelectedClass] = useState('');
+  const [classes, setClasses] = useState<string[]>([]);
   const [selectedTerm, setSelectedTerm] = useState('Ganjil 2023/2024');
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<StudentGrade[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const fetchClasses = async () => {
+    try {
+      const snap = await getDocs(query(collection(db, 'classes'), orderBy('name')));
+      const classList = snap.docs.map(doc => doc.data().name);
+      if (classList.length > 0) {
+        setClasses(classList);
+        if (!selectedClass) setSelectedClass(classList[0]);
+      } else {
+        const defaults = ['XE1', 'XE2', 'XE3', 'XE4'];
+        setClasses(defaults);
+        if (!selectedClass) setSelectedClass(defaults[0]);
+      }
+    } catch (error) {
+      console.error("Error fetching classes:", error);
+    }
+  };
+
   useEffect(() => {
-    fetchData();
+    fetchClasses();
+  }, []);
+
+  useEffect(() => {
+    if (selectedClass) {
+      fetchData();
+    }
   }, [selectedClass]);
 
   const fetchData = async () => {
@@ -52,25 +76,38 @@ export default function Grades() {
       const submissionsSnap = await getDocs(collection(db, 'submissions'));
       const submissionsData = submissionsSnap.docs.map(doc => doc.data());
 
+      // Deduplicate student list by name and class
+      const uniqueStudents: Record<string, any> = {};
+      studentList.forEach(s => {
+        const key = `${s.name}-${s.classId}`;
+        // Prefer record with Auth UID (id length usually > 20) over random firestore id
+        if (!uniqueStudents[key] || s.id.length > (uniqueStudents[key].id.length || 0)) {
+          uniqueStudents[key] = s;
+        }
+      });
+      const finalStudentList = Object.values(uniqueStudents);
+
       // 4. Merge Data
-      const merged: StudentGrade[] = studentList.map(s => {
+      const merged: StudentGrade[] = finalStudentList.map(s => {
         const formatif = Array(15).fill(null);
         const sumatif = Array(9).fill(null);
         let sas_tes = null;
 
         // Fill Formatif from exam_results
         resultsData.forEach((res: any) => {
-          if (res.studentId === s.id && res.category === 'formatif' && res.columnNumber) {
+          const isSameStudent = res.studentId === s.id || (res.studentName === s.name && res.classId === s.classId);
+          if (isSameStudent && res.category === 'formatif' && res.columnNumber) {
             formatif[res.columnNumber - 1] = res.score;
           }
-          if (res.studentId === s.id && res.category === 'sas') {
+          if (isSameStudent && res.category === 'sas') {
             sas_tes = res.score;
           }
         });
 
         // Fill Sumatif from submissions
         submissionsData.forEach((sub: any) => {
-          if (sub.studentId === s.id && sub.category === 'sumatif' && sub.columnNumber && sub.status === 'graded') {
+          const isSameStudent = sub.studentId === s.id || (sub.studentName === s.name && sub.classId === s.classId);
+          if (isSameStudent && sub.category === 'sumatif' && sub.columnNumber && sub.status === 'graded') {
             sumatif[sub.columnNumber - 1] = sub.grade;
           }
         });
@@ -131,10 +168,9 @@ export default function Grades() {
               value={selectedClass}
               onChange={(e) => setSelectedClass(e.target.value)}
             >
-              <option value="XE1">XE1</option>
-              <option value="XE2">XE2</option>
-              <option value="XE3">XE3</option>
-              <option value="XE4">XE4</option>
+              {classes.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
             </select>
           </div>
           <div className="flex items-center gap-2 shrink-0 border-l pl-4 border-slate-100">
