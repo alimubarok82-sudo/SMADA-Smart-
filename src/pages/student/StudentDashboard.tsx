@@ -1,20 +1,83 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { CheckCircle, Clock, FileText, MapPin, Trophy, Link as LinkIcon, Image as ImageIcon, Send, Loader2 } from 'lucide-react';
+import { CheckCircle, Clock, FileText, MapPin, Trophy, Link as LinkIcon, Image as ImageIcon, Send, Loader2, ChevronRight } from 'lucide-react';
 import { motion } from 'motion/react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 export default function StudentDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [submissionType, setSubmissionType] = useState<'link' | 'image'>('link');
   const [submissionTitle, setSubmissionTitle] = useState('');
   const [submissionValue, setSubmissionValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    activeExams: 0,
+    completedExams: 0,
+    avgGrade: 0,
+    attendance: 100
+  });
+  const [availableExams, setAvailableExams] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
+
+  const fetchData = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      // 1. Fetch Active Exams
+      const examsSnap = await getDocs(query(collection(db, 'exams'), where('status', '==', 'active')));
+      const activeExamsCount = examsSnap.size;
+      const examsList = examsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // 2. Fetch Completed Exams (Results)
+      const resultsSnap = await getDocs(query(collection(db, 'exam_results'), where('studentId', '==', user.uid)));
+      const completedExamsCount = resultsSnap.size;
+
+      // 3. Calculate Average Grade
+      const submissionsSnap = await getDocs(query(collection(db, 'submissions'), where('studentId', '==', user.uid), where('status', '==', 'graded')));
+      
+      let totalPoints = 0;
+      let totalCount = 0;
+
+      resultsSnap.docs.forEach(doc => {
+        totalPoints += doc.data().score || 0;
+        totalCount++;
+      });
+
+      submissionsSnap.docs.forEach(doc => {
+        totalPoints += doc.data().grade || 0;
+        totalCount++;
+      });
+
+      const avgGrade = totalCount > 0 ? (totalPoints / totalCount).toFixed(1) : '0';
+
+      setStats({
+        activeExams: activeExamsCount,
+        completedExams: completedExamsCount,
+        avgGrade: parseFloat(avgGrade),
+        attendance: 100 // Mock for now
+      });
+
+      setAvailableExams(examsList);
+    } catch (error) {
+      console.error("Error fetching student dashboard data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!submissionValue.trim() || !user) return;
@@ -36,30 +99,32 @@ export default function StudentDashboard() {
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
     } catch (error) {
-      const errInfo = {
-        error: error instanceof Error ? error.message : String(error),
-        operationType: 'create',
-        path: 'submissions',
-        userId: user.uid,
-        email: user.email
-      };
-      console.error("Error submitting:", JSON.stringify(errInfo));
+      console.error("Error submitting:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const stats = [
-    { title: 'Ujian Aktif', value: '2', icon: <FileText className="w-6 h-6" />, containerClass: 'bg-indigo-50 text-indigo-600' },
-    { title: 'Ujian Selesai', value: '15', icon: <CheckCircle className="w-6 h-6" />, containerClass: 'bg-emerald-50 text-emerald-600' },
-    { title: 'Nilai Rata-rata', value: '85.4', icon: <Trophy className="w-6 h-6" />, containerClass: 'bg-amber-50 text-amber-600' },
-    { title: 'Persentase Kehadiran', value: '98%', icon: <Clock className="w-6 h-6" />, containerClass: 'bg-purple-50 text-purple-600' },
+  const statsList = [
+    { title: 'Ujian Aktif', value: stats.activeExams, icon: <FileText className="w-6 h-6" />, containerClass: 'bg-indigo-50 text-indigo-600' },
+    { title: 'Ujian Selesai', value: stats.completedExams, icon: <CheckCircle className="w-6 h-6" />, containerClass: 'bg-emerald-50 text-emerald-600' },
+    { title: 'Nilai Rata-rata', value: stats.avgGrade, icon: <Trophy className="w-6 h-6" />, containerClass: 'bg-amber-50 text-amber-600' },
+    { title: 'Persentase Kehadiran', value: stats.attendance + '%', icon: <Clock className="w-6 h-6" />, containerClass: 'bg-purple-50 text-purple-600' },
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center text-slate-400">
+        <Loader2 className="w-12 h-12 animate-spin mb-4 text-indigo-500" />
+        <p className="font-bold uppercase tracking-widest text-xs">Memuat Data Dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 shrink-0">
-        {stats.map((stat, i) => (
+        {statsList.map((stat, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 20 }}
@@ -183,40 +248,39 @@ export default function StudentDashboard() {
         <div className="lg:col-span-8 bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-slate-800">Ujian Tersedia</h3>
-            <button className="text-indigo-600 text-xs font-bold">Lihat Semua</button>
+            <button className="text-indigo-600 text-xs font-bold" onClick={() => navigate('/dashboard/exams')}>Lihat Semua</button>
           </div>
           <div className="space-y-4">
-            {[
-              { mapel: 'Matematika Peminatan', guru: 'Bpk. Budi Santoso, S.Pd', durasi: '90 Menit', soal: 40, status: 'Mulai', color: 'bg-indigo-600', code: 'MTK' },
-              { mapel: 'Fisika', guru: 'Ibu Ratna, M.Sc', durasi: '60 Menit', soal: 30, status: 'Belum Mulai', color: 'bg-emerald-600', code: 'FIS' }
-            ].map((ujian, i) => (
-              <div key={i} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                <div className={`w-12 h-12 ${ujian.color} text-white rounded-xl flex items-center justify-center font-bold text-sm hidden sm:flex shrink-0`}>
-                  {ujian.code}
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-bold text-slate-700">{ujian.mapel}</div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">{ujian.guru}</div>
-                  <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-500 font-bold uppercase tracking-wide">
-                    <span className="flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-slate-100 shadow-sm"><Clock size={12}/> {ujian.durasi}</span>
-                    <span className="flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-slate-100 shadow-sm"><FileText size={12}/> {ujian.soal} Soal</span>
+            {availableExams.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+                <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm text-slate-400 font-medium">Belum ada ujian aktif saat ini.</p>
+              </div>
+            ) : (
+              availableExams.map((ujian, i) => (
+                <div key={ujian.id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                  <div className={`w-12 h-12 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold text-sm hidden sm:flex shrink-0`}>
+                    {ujian.subject?.substring(0, 3).toUpperCase() || 'EX'}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-bold text-slate-700">{ujian.title}</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">{ujian.subject}</div>
+                    <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-500 font-bold uppercase tracking-wide">
+                      <span className="flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-slate-100 shadow-sm"><Clock size={12}/> {ujian.duration}</span>
+                      <span className="flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-slate-100 shadow-sm"><FileText size={12}/> {ujian.category}</span>
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    <button 
+                      onClick={() => window.location.assign(`/exam/${ujian.id}`)}
+                      className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-bold transition-all bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200"
+                    >
+                      Kerjakan
+                    </button>
                   </div>
                 </div>
-                <div className="shrink-0">
-                  <button 
-                    disabled={ujian.status !== 'Mulai'}
-                    onClick={() => ujian.status === 'Mulai' && window.location.assign('/exam/1')}
-                    className={`w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                      ujian.status === 'Mulai' 
-                        ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200' 
-                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                    }`}
-                  >
-                    {ujian.status === 'Mulai' ? 'Kerjakan' : 'Menunggu'}
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

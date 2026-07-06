@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/auth/Login';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import StudentDashboard from './pages/student/StudentDashboard';
+import StudentExams from './pages/student/StudentExams';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ExamPage from './pages/student/Exam';
 
@@ -31,6 +32,14 @@ const DashboardRouter = () => {
   return <StudentDashboard />;
 };
 
+const ExamRouter = () => {
+  const { user } = useAuth();
+  if (user?.role === 'admin' || user?.role === 'guru') {
+    return <Exams />;
+  }
+  return <StudentExams />;
+};
+
 export default function App() {
   return (
     <AuthProvider>
@@ -40,12 +49,16 @@ export default function App() {
           
           <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route index element={<DashboardRouter />} />
-            {/* Additional stub routes */}
-            <Route path="students" element={<StudentData />} />
-            <Route path="attendance" element={<Attendance />} />
-            <Route path="exams" element={<Exams />} />
-            <Route path="grades" element={<Grades />} />
-            <Route path="submissions" element={<Submissions />} />
+            
+            {/* Admin/Guru Only Routes */}
+            <Route path="students" element={<ProtectedRoute allowedRoles={['admin', 'guru']}><StudentData /></ProtectedRoute>} />
+            <Route path="grades" element={<ProtectedRoute allowedRoles={['admin', 'guru']}><Grades /></ProtectedRoute>} />
+            <Route path="submissions" element={<ProtectedRoute allowedRoles={['admin', 'guru']}><Submissions /></ProtectedRoute>} />
+            
+            {/* Shared Path, Different Components */}
+            <Route path="exams" element={<ExamRouter />} />
+            <Route path="attendance" element={<ProtectedRoute allowedRoles={['admin', 'guru']}><Attendance /></ProtectedRoute>} />
+            
             <Route path="settings" element={<div>Pengaturan</div>} />
           </Route>
 
