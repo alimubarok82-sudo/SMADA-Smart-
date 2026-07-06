@@ -227,7 +227,7 @@ export default function StudentData() {
            </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {Object.entries(studentsByClass).sort(([a], [b]) => a.localeCompare(b)).map(([className, students], i) => (
+            {(Object.entries(studentsByClass) as [string, Student[]][]).sort(([a], [b]) => a.localeCompare(b)).map(([className, students], i) => (
               <motion.div
                 key={className}
                 initial={{ opacity: 0, y: 10 }}
