@@ -37,11 +37,11 @@ export const DashboardLayout = () => {
     if (user?.role === 'admin' || user?.role === 'guru') {
       return [
         { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
-        { name: 'Data Siswa', path: '/dashboard/students', icon: <Users size={20} /> },
+        { name: 'Leger Nilai', path: '/dashboard/grades', icon: <BookOpen size={20} /> },
+        { name: 'Portofolio', path: '/dashboard/submissions', icon: <Send size={20} /> },
         { name: 'Absensi', path: '/dashboard/attendance', icon: <CheckCircle size={20} /> },
         { name: 'Sistem Ujian', path: '/dashboard/exams', icon: <FileText size={20} /> },
-        { name: 'Jawaban Siswa', path: '/dashboard/submissions', icon: <Send size={20} /> },
-        { name: 'Leger Nilai', path: '/dashboard/grades', icon: <BookOpen size={20} /> },
+        { name: 'Data Siswa', path: '/dashboard/students', icon: <Users size={20} /> },
         { name: 'Pengaturan', path: '/dashboard/settings', icon: <Settings size={20} /> },
       ];
     }
@@ -51,7 +51,6 @@ export const DashboardLayout = () => {
       { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
       { name: 'Ujian Aktif', path: '/dashboard/exams', icon: <FileText size={20} /> },
       { name: 'Absensi Mingguan', path: '/dashboard/attendance', icon: <CheckCircle size={20} /> },
-      { name: 'Raport', path: '/dashboard/reports', icon: <BookOpen size={20} /> },
     ];
   };
 

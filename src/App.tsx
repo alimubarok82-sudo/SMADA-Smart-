@@ -46,7 +46,6 @@ export default function App() {
             <Route path="exams" element={<Exams />} />
             <Route path="grades" element={<Grades />} />
             <Route path="submissions" element={<Submissions />} />
-            <Route path="reports" element={<div>Raport</div>} />
             <Route path="settings" element={<div>Pengaturan</div>} />
           </Route>
 

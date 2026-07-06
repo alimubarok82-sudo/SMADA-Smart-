@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["siswa", "guru", "admin"] },
+        "classId": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "Student work submission",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "type": { "type": "string", "enum": ["link", "image"] },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["pending", "graded"] },
+        "classId": { "type": "string" },
+        "grade": { "type": "number" },
+        "title": { "type": "string" },
+        "category": { "type": "string", "enum": ["formatif", "sumatif"] },
+        "columnNumber": { "type": "number" }
+      },
+      "required": ["studentId", "studentName", "type", "content", "status", "classId"]
+    },
+    "Exam": {
+      "title": "Exam",
+      "description": "Exam template",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "subject": { "type": "string" },
+        "duration": { "type": "string" },
+        "status": { "type": "string", "enum": ["upcoming", "active", "completed"] },
+        "columnNumber": { "type": "number" },
+        "category": { "type": "string", "enum": ["formatif", "sumatif"] }
+      },
+      "required": ["title", "status"]
+    },
+    "ExamResult": {
+      "title": "ExamResult",
+      "description": "Student exam result",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "examId": { "type": "string" },
+        "score": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "classId": { "type": "string" },
+        "columnNumber": { "type": "number" },
+        "category": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles"
+    },
+    "/submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Collection of student submissions"
+    },
+    "/exams/{examId}": {
+      "schema": "Exam",
+      "description": "Collection of exams"
+    },
+    "/exam_results/{resultId}": {
+      "schema": "ExamResult",
+      "description": "Collection of exam results"
+    }
+  }
+}

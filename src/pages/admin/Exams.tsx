@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, Search, X, Check } from 'lucide-react';
+import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, Search, X, Check, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 interface Exam {
   id: string;
@@ -13,38 +15,79 @@ interface Exam {
   duration: string;
   status: 'upcoming' | 'active' | 'completed';
   participants: number;
+  columnNumber: number;
+  category: 'formatif' | 'sumatif';
 }
 
-const INITIAL_EXAMS: Exam[] = [
-  { id: '1', title: 'PTS - Algoritma dan Struktur Data', subject: 'Informatika', date: '2024-03-20', duration: '90 Menit', status: 'upcoming', participants: 120 },
-  { id: '2', title: 'Ujian Harian Pemrograman Python', subject: 'Informatika', date: '2024-03-15', duration: '45 Menit', status: 'active', participants: 35 },
-  { id: '3', title: 'Simulasi Sertifikasi Jaringan Dasar', subject: 'Informatika', date: '2024-03-10', duration: '180 Menit', status: 'completed', participants: 450 },
-];
-
 export default function Exams() {
-  const [exams, setExams] = useState<Exam[]>(INITIAL_EXAMS);
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newExam, setNewExam] = useState({ title: '', subject: 'Informatika', duration: '90 Menit' });
+  const [newExam, setNewExam] = useState({ 
+    title: '', 
+    subject: 'Informatika', 
+    duration: '90 Menit',
+    columnNumber: 1,
+    category: 'formatif' as const
+  });
 
-  const handleCreateExam = () => {
-    if (!newExam.title) return;
-    const exam: Exam = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: newExam.title,
-      subject: newExam.subject,
-      date: new Date().toISOString().split('T')[0],
-      duration: newExam.duration,
-      status: 'upcoming',
-      participants: 0,
-    };
-    setExams([exam, ...exams]);
-    setNewExam({ title: '', subject: 'Informatika', duration: '90 Menit' });
-    setShowCreateModal(false);
+  useEffect(() => {
+    fetchExams();
+  }, []);
+
+  const fetchExams = async () => {
+    try {
+      const q = query(collection(db, 'exams'), orderBy('title'));
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      setExams(data);
+    } catch (error) {
+      console.error("Error fetching exams:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateStatus = (id: string, status: 'upcoming' | 'active' | 'completed') => {
-    setExams(exams.map(e => e.id === id ? { ...e, status } : e));
+  const handleCreateExam = async () => {
+    if (!newExam.title) return;
+    try {
+      const examData = {
+        title: newExam.title,
+        subject: newExam.subject,
+        date: new Date().toISOString().split('T')[0],
+        duration: newExam.duration,
+        status: 'upcoming',
+        participants: 0,
+        columnNumber: newExam.columnNumber,
+        category: newExam.category
+      };
+      const docRef = await addDoc(collection(db, 'exams'), examData);
+      setExams([{ id: docRef.id, ...examData } as Exam, ...exams]);
+      setNewExam({ title: '', subject: 'Informatika', duration: '90 Menit', columnNumber: 1, category: 'formatif' });
+      setShowCreateModal(false);
+    } catch (error) {
+      console.error("Error creating exam:", error);
+    }
+  };
+
+  const updateStatus = async (id: string, status: 'upcoming' | 'active' | 'completed') => {
+    try {
+      await updateDoc(doc(db, 'exams', id), { status });
+      setExams(exams.map(e => e.id === id ? { ...e, status } : e));
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
+  };
+
+  const handleDeleteExam = async (id: string) => {
+    if (!confirm('Hapus ujian ini?')) return;
+    try {
+      await deleteDoc(doc(db, 'exams', id));
+      setExams(exams.filter(e => e.id !== id));
+    } catch (error) {
+      console.error("Error deleting exam:", error);
+    }
   };
 
   const filteredExams = exams.filter(e => 
@@ -255,6 +298,32 @@ export default function Exams() {
                         <option>90 Menit</option>
                         <option>120 Menit</option>
                         <option>180 Menit</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori Leger</label>
+                      <select 
+                        className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={newExam.category}
+                        onChange={e => setNewExam({ ...newExam, category: e.target.value as any })}
+                      >
+                        <option value="formatif">Asesmen Formatif</option>
+                        <option value="sumatif">Sumatif Lingkup Materi</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kolom (1-15)</label>
+                      <select 
+                        className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={newExam.columnNumber}
+                        onChange={e => setNewExam({ ...newExam, columnNumber: parseInt(e.target.value) })}
+                      >
+                        {[...Array(15)].map((_, i) => (
+                          <option key={i+1} value={i+1}>Kolom {i+1}</option>
+                        ))}
                       </select>
                     </div>
                   </div>

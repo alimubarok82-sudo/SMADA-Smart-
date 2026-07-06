@@ -10,6 +10,7 @@ import { db } from '../../lib/firebase';
 export default function StudentDashboard() {
   const { user } = useAuth();
   const [submissionType, setSubmissionType] = useState<'link' | 'image'>('link');
+  const [submissionTitle, setSubmissionTitle] = useState('');
   const [submissionValue, setSubmissionValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -23,6 +24,7 @@ export default function StudentDashboard() {
       await addDoc(collection(db, 'submissions'), {
         studentId: user.uid,
         studentName: user.displayName || 'Anonim',
+        title: submissionTitle || 'Tugas Informatika',
         type: submissionType,
         content: submissionValue,
         timestamp: serverTimestamp(),
@@ -30,10 +32,18 @@ export default function StudentDashboard() {
         classId: (user as any).classId || 'Unknown'
       });
       setSubmissionValue('');
+      setSubmissionTitle('');
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
     } catch (error) {
-      console.error("Error submitting:", error);
+      const errInfo = {
+        error: error instanceof Error ? error.message : String(error),
+        operationType: 'create',
+        path: 'submissions',
+        userId: user.uid,
+        email: user.email
+      };
+      console.error("Error submitting:", JSON.stringify(errInfo));
     } finally {
       setIsSubmitting(false);
     }
@@ -120,6 +130,19 @@ export default function StudentDashboard() {
                 >
                   <ImageIcon size={14} /> Gambar
                 </button>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                  Judul Tugas
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Jaringan, Algoritma, dll"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold"
+                  value={submissionTitle}
+                  onChange={(e) => setSubmissionTitle(e.target.value)}
+                />
               </div>
 
               <div className="space-y-2">

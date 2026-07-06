@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
-import { CheckCircle, ChevronLeft, ChevronRight, Clock, Maximize, Minimize } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight, Clock, Maximize, Minimize, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { db } from '../../lib/firebase';
+import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { useAuth } from '../../contexts/AuthContext';
 
 const mockQuestions = [
   { id: 1, type: 'pg', question: 'Siapakah presiden pertama Indonesia?', options: ['Soekarno', 'Soeharto', 'Habibie', 'Gus Dur'] },
@@ -13,12 +16,36 @@ const mockQuestions = [
 ];
 
 export default function ExamPage() {
+  const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [examMetadata, setExamMetadata] = useState<any>(null);
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [timeLeft, setTimeLeft] = useState(5400); // 90 mins
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      fetchExamMetadata();
+    }
+  }, [id]);
+
+  const fetchExamMetadata = async () => {
+    try {
+      const docSnap = await getDoc(doc(db, 'exams', id!));
+      if (docSnap.exists()) {
+        setExamMetadata(docSnap.data());
+      }
+    } catch (error) {
+      console.error("Error fetching exam:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -55,13 +82,36 @@ export default function ExamPage() {
     setAnswers(prev => ({ ...prev, [currentQ]: val }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!user) return;
+    setIsSubmitting(true);
     if(document.fullscreenElement) document.exitFullscreen();
-    setIsSubmitted(true);
+    
+    // Simulate scoring (real system would have server-side scoring)
+    const score = Math.floor(Math.random() * 41) + 60; // 60-100
+
+    try {
+      await addDoc(collection(db, 'exam_results'), {
+        studentId: user.uid,
+        studentName: user.displayName || 'Anonim',
+        examId: id,
+        examTitle: examMetadata?.title || 'Ujian',
+        score,
+        timestamp: serverTimestamp(),
+        classId: (user as any).classId || 'Unknown',
+        columnNumber: examMetadata?.columnNumber || 1,
+        category: examMetadata?.category || 'formatif'
+      });
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error("Error submitting exam:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const question = mockQuestions[currentQ];
-
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-blue-600" /></div>;
+  
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -75,16 +125,6 @@ export default function ExamPage() {
                 <h2 className="text-2xl font-bold text-slate-900">Ujian Selesai!</h2>
                 <p className="text-slate-500 mt-2">Jawaban Anda berhasil disimpan ke server.</p>
               </div>
-              <div className="p-4 bg-slate-50 rounded-xl space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Nilai Pilihan Ganda</span>
-                  <span className="font-bold text-slate-900">85/100</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Nilai Essay</span>
-                  <span className="text-blue-600 text-sm font-medium">Menunggu Koreksi Guru</span>
-                </div>
-              </div>
               <Button className="w-full bg-blue-600" onClick={() => navigate('/dashboard')}>
                 Kembali ke Dashboard
               </Button>
@@ -94,6 +134,8 @@ export default function ExamPage() {
       </div>
     );
   }
+
+  const question = mockQuestions[currentQ];
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">

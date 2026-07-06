@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Search, Filter, ExternalLink, Image as ImageIcon, Link as LinkIcon, CheckCircle2, Clock, Trash2, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { auth, db } from '../../lib/firebase';
 import { collection, getDocs, query, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
 
 interface Submission {
   id: string;
@@ -15,12 +15,17 @@ interface Submission {
   timestamp: any;
   status: 'pending' | 'graded';
   classId: string;
+  grade?: number;
+  title?: string;
 }
 
 export default function Submissions() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedClass, setSelectedClass] = useState('Semua Kelas');
+  const [grades, setGrades] = useState<Record<string, number>>({});
+  const [columnNumbers, setColumnNumbers] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchSubmissions();
@@ -33,157 +38,167 @@ export default function Submissions() {
       const data = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      })) as Submission[];
+      })) as any[];
       setSubmissions(data);
+      
+      // Initialize grades and columns state
+      const initialGrades: Record<string, number> = {};
+      const initialColumns: Record<string, number> = {};
+      data.forEach(s => {
+        if (s.grade !== undefined) initialGrades[s.id] = s.grade;
+        if (s.columnNumber !== undefined) initialColumns[s.id] = s.columnNumber;
+      });
+      setGrades(initialGrades);
+      setColumnNumbers(initialColumns);
     } catch (error) {
-      console.error("Error fetching submissions:", error);
+      const errInfo = {
+        error: error instanceof Error ? error.message : String(error),
+        operationType: 'get',
+        path: 'submissions',
+        userId: auth.currentUser?.uid,
+        email: auth.currentUser?.email
+      };
+      console.error("Error fetching submissions:", JSON.stringify(errInfo));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Hapus jawaban ini?')) return;
+  const handleSaveGrade = async (id: string) => {
+    const gradeValue = grades[id];
+    const columnNum = columnNumbers[id] || 1;
+    if (gradeValue === undefined) return;
+    
     try {
-      await deleteDoc(doc(db, 'submissions', id));
-      setSubmissions(submissions.filter(s => s.id !== id));
+      await updateDoc(doc(db, 'submissions', id), { 
+        grade: gradeValue,
+        status: 'graded',
+        columnNumber: columnNum,
+        category: 'sumatif'
+      });
+      setSubmissions(submissions.map(s => s.id === id ? { ...s, grade: gradeValue, status: 'graded', columnNumber: columnNum, category: 'sumatif' } : s));
     } catch (error) {
-      console.error("Error deleting:", error);
+      const errInfo = {
+        error: error instanceof Error ? error.message : String(error),
+        operationType: 'update',
+        path: `submissions/${id}`,
+        userId: auth.currentUser?.uid,
+        email: auth.currentUser?.email
+      };
+      console.error("Error saving grade:", JSON.stringify(errInfo));
     }
   };
 
-  const handleGrade = async (id: string) => {
-    try {
-      await updateDoc(doc(db, 'submissions', id), { status: 'graded' });
-      setSubmissions(submissions.map(s => s.id === id ? { ...s, status: 'graded' } : s));
-    } catch (error) {
-      console.error("Error grading:", error);
-    }
-  };
+  const filtered = submissions.filter(s => {
+    const matchesSearch = s.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (s.title || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesClass = selectedClass === 'Semua Kelas' || s.classId === selectedClass;
+    return matchesSearch && matchesClass;
+  });
 
-  const filtered = submissions.filter(s => 
-    s.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.classId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const uniqueClasses = Array.from(new Set(submissions.map(s => s.classId))).sort();
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Jawaban & Tugas Siswa</h2>
-          <p className="text-slate-500 text-sm">Lihat hasil pengiriman link atau gambar dari siswa</p>
+        <div className="flex items-center gap-2">
+          <LinkIcon className="text-rose-500 w-6 h-6" />
+          <div>
+            <h2 className="text-xl font-bold text-slate-800">Penilaian Portofolio Siswa</h2>
+            <p className="text-slate-500 text-xs">Daftar unggahan tugas dan karya siswa untuk dinilai.</p>
+          </div>
         </div>
+        <select 
+          className="h-10 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 min-w-[150px] shadow-sm"
+          value={selectedClass}
+          onChange={(e) => setSelectedClass(e.target.value)}
+        >
+          <option>Semua Kelas</option>
+          {uniqueClasses.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
       </div>
 
-      <div className="flex items-center gap-4 bg-white p-2 rounded-[24px] border border-slate-100 shadow-sm">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-          <input 
-            type="text"
-            placeholder="Cari nama siswa atau kelas..."
-            className="w-full h-12 pl-11 pr-4 bg-transparent text-sm focus:outline-none"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <Button variant="outline" className="h-10 rounded-xl border-slate-200">
-          <Filter className="w-4 h-4 mr-2" /> Filter
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="space-y-4">
         <AnimatePresence>
           {loading ? (
-            <div className="col-span-full py-20 text-center text-slate-400 font-medium">Memuat data...</div>
+            <div className="py-20 text-center text-slate-400 font-medium">Memuat data pengiriman...</div>
           ) : filtered.length === 0 ? (
-            <div className="col-span-full py-20 text-center text-slate-400 font-medium">Belum ada pengiriman jawaban</div>
+            <div className="py-20 text-center text-slate-400 font-medium">Belum ada pengiriman jawaban</div>
           ) : (
             filtered.map((sub, i) => (
               <motion.div
                 key={sub.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Card className="rounded-[32px] border-slate-100 shadow-sm hover:shadow-md transition-all group overflow-hidden">
-                  <div className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
-                          <User size={20} />
+                <Card className="rounded-2xl border-slate-100 shadow-sm hover:shadow-md transition-all bg-white overflow-hidden">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">{sub.studentName}</h3>
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-bold uppercase">{sub.classId}</span>
                         </div>
-                        <div>
-                          <div className="text-sm font-bold text-slate-800 truncate max-w-[150px]">{sub.studentName}</div>
-                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{sub.classId}</div>
+                        <p className="text-rose-600 font-bold text-lg lowercase">{sub.title || 'tugas informatika'}</p>
+                        <div className="flex items-center gap-2 text-slate-400 text-[10px] font-medium">
+                          <Clock size={12} />
+                          {sub.timestamp?.toDate ? sub.timestamp.toDate().toLocaleString('id-ID') : 'Baru saja'}
+                        </div>
+                        <div className="pt-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => window.open(sub.content, '_blank')}
+                            className="h-8 rounded-lg border-rose-200 text-rose-500 bg-white hover:bg-rose-50 font-bold text-[10px] px-3 shadow-sm transition-all"
+                          >
+                            <LinkIcon size={12} className="mr-2" /> Buka Link
+                          </Button>
                         </div>
                       </div>
-                      {sub.status === 'pending' ? (
-                        <div className="px-2 py-1 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-bold flex items-center gap-1">
-                          <Clock size={12} /> PENDING
-                        </div>
-                      ) : (
-                        <div className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold flex items-center gap-1">
-                          <CheckCircle2 size={12} /> GRADED
-                        </div>
-                      )}
-                    </div>
 
-                    <div className="aspect-video bg-slate-50 rounded-2xl mb-4 flex items-center justify-center border border-slate-100 overflow-hidden">
-                      {sub.type === 'image' ? (
-                        <img 
-                          src={sub.content} 
-                          alt="Jawaban Siswa" 
-                          className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
-                          onClick={() => window.open(sub.content, '_blank')}
-                          onError={(e) => {
-                            (e.target as any).src = 'https://placehold.co/600x400?text=Format+Salah';
-                          }}
-                        />
-                      ) : (
-                        <div className="text-center p-4">
-                          <LinkIcon size={32} className="text-indigo-400 mx-auto mb-2" />
-                          <div className="text-[10px] text-slate-400 font-medium break-all">{sub.content}</div>
+                      <div className="w-full md:w-auto flex flex-col items-end gap-2">
+                        <div className="flex gap-2 w-full md:w-auto">
+                          <div className="flex-1 space-y-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Kolom Sumatif</label>
+                            <select 
+                              className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-rose-500 transition-all shadow-inner"
+                              value={columnNumbers[sub.id] || 1}
+                              onChange={(e) => setColumnNumbers({ ...columnNumbers, [sub.id]: parseInt(e.target.value) })}
+                            >
+                              {[...Array(9)].map((_, i) => (
+                                <option key={i+1} value={i+1}>Sumatif {i+1}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex-1 space-y-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nilai (0-100)</label>
+                            <div className="flex items-center gap-2">
+                              <input 
+                                type="number"
+                                min="0"
+                                max="100"
+                                className="w-full md:w-20 h-11 px-4 bg-white border border-slate-200 rounded-xl text-center font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all shadow-inner"
+                                value={grades[sub.id] || ''}
+                                onChange={(e) => setGrades({ ...grades, [sub.id]: parseInt(e.target.value) })}
+                              />
+                              <button 
+                                onClick={() => handleSaveGrade(sub.id)}
+                                className="w-11 h-11 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-emerald-100 transition-all shrink-0 active:scale-95"
+                              >
+                                <CheckCircle2 size={20} />
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                      )}
+                        {sub.status === 'graded' && (
+                          <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-500 animate-in fade-in slide-in-from-top-1">
+                            <CheckCircle2 size={12} /> Dinilai
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-                    <div className="flex gap-2">
-                      {sub.type === 'link' ? (
-                        <Button 
-                          onClick={() => window.open(sub.content, '_blank')}
-                          className="flex-1 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
-                        >
-                          <ExternalLink size={14} className="mr-2" /> Buka Link
-                        </Button>
-                      ) : (
-                        <Button 
-                          onClick={() => window.open(sub.content, '_blank')}
-                          className="flex-1 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
-                        >
-                          <ImageIcon size={14} className="mr-2" /> Lihat Full
-                        </Button>
-                      )}
-                      
-                      {sub.status === 'pending' && (
-                        <Button 
-                          onClick={() => handleGrade(sub.id)}
-                          variant="outline"
-                          className="w-10 h-10 p-0 rounded-xl border-slate-200 text-emerald-600 hover:bg-emerald-50"
-                        >
-                          <CheckCircle2 size={18} />
-                        </Button>
-                      )}
-                      
-                      <Button 
-                        onClick={() => handleDelete(sub.id)}
-                        variant="outline"
-                        className="w-10 h-10 p-0 rounded-xl border-slate-200 text-rose-600 hover:bg-rose-50"
-                      >
-                        <Trash2 size={18} />
-                      </Button>
-                    </div>
-                  </div>
+                  </CardContent>
                 </Card>
               </motion.div>
             ))
