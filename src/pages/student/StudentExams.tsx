@@ -17,11 +17,21 @@ export default function StudentExams() {
   }, []);
 
   const fetchExams = async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      const q = query(collection(db, 'exams'), where('status', '==', 'active'), orderBy('title'));
+      const studentClass = (user as any).classId;
+      let q = query(collection(db, 'exams'), where('status', '==', 'active'), orderBy('title'));
+      
       const snap = await getDocs(q);
-      setExams(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const allActiveExams = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Filter by class client-side or use another query if targetClass is set
+      const filteredByClass = allActiveExams.filter((exam: any) => 
+        !exam.targetClass || exam.targetClass === studentClass
+      );
+      
+      setExams(filteredByClass);
     } catch (error) {
       console.error("Error fetching exams:", error);
     } finally {

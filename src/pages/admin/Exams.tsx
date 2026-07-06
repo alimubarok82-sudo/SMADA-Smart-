@@ -32,15 +32,50 @@ export default function Exams() {
   const [newExam, setNewExam] = useState({ 
     title: '', 
     subject: 'Informatika', 
-    duration: '90 Menit',
+    duration: '30 Menit',
     columnNumber: 1,
-    category: 'formatif' as const
+    category: 'formatif' as const,
+    targetClass: '',
+    questions: [] as any[]
+  });
+  const [classes, setClasses] = useState<string[]>([]);
+  const [showQuestionForm, setShowQuestionForm] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState({
+    text: '',
+    options: ['', '', '', ''],
+    correctAnswer: 0
   });
 
   useEffect(() => {
     fetchExams();
     fetchStats();
+    fetchClasses();
   }, []);
+
+  const fetchClasses = async () => {
+    try {
+      const snap = await getDocs(query(collection(db, 'classes'), orderBy('name')));
+      const classList = snap.docs.map(doc => doc.data().name).filter(Boolean);
+      
+      const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'siswa')));
+      const classesFromStudents = new Set<string>();
+      studentsSnap.docs.forEach(d => {
+        const cId = d.data().classId;
+        if (cId) classesFromStudents.add(cId);
+      });
+      
+      const combined = Array.from(new Set([...classList, ...Array.from(classesFromStudents)]))
+        .filter(Boolean)
+        .sort();
+      
+      setClasses(combined);
+      if (combined.length > 0) {
+        setNewExam(prev => ({ ...prev, targetClass: combined[0] }));
+      }
+    } catch (error) {
+      console.error("Error fetching classes:", error);
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -94,8 +129,29 @@ export default function Exams() {
     }
   };
 
+  const handleAddQuestion = () => {
+    if (!currentQuestion.text || currentQuestion.options.some(o => !o)) {
+      alert("Harap isi soal dan semua pilihan jawaban");
+      return;
+    }
+    setNewExam(prev => ({
+      ...prev,
+      questions: [...prev.questions, currentQuestion]
+    }));
+    setCurrentQuestion({
+      text: '',
+      options: ['', '', '', ''],
+      correctAnswer: 0
+    });
+    setShowQuestionForm(false);
+  };
+
   const handleCreateExam = async () => {
     if (!newExam.title) return;
+    if (newExam.questions.length === 0) {
+      alert("Harap tambahkan minimal satu soal");
+      return;
+    }
     try {
       const examData = {
         title: newExam.title,
@@ -105,11 +161,22 @@ export default function Exams() {
         status: 'upcoming',
         participants: 0,
         columnNumber: newExam.columnNumber,
-        category: newExam.category
+        category: newExam.category,
+        targetClass: newExam.targetClass,
+        questions: newExam.questions,
+        totalQuestions: newExam.questions.length
       };
       const docRef = await addDoc(collection(db, 'exams'), examData);
-      setExams([{ id: docRef.id, ...examData } as Exam, ...exams]);
-      setNewExam({ title: '', subject: 'Informatika', duration: '90 Menit', columnNumber: 1, category: 'formatif' });
+      setExams([{ id: docRef.id, ...examData } as any, ...exams]);
+      setNewExam({ 
+        title: '', 
+        subject: 'Informatika', 
+        duration: '30 Menit', 
+        columnNumber: 1, 
+        category: 'formatif',
+        targetClass: classes[0] || '',
+        questions: []
+      });
       setShowCreateModal(false);
     } catch (error) {
       console.error("Error creating exam:", error);
@@ -235,6 +302,11 @@ export default function Exams() {
                         <div className="flex items-center gap-2">
                           <Users size={14} className="text-slate-400" /> {exam.participants} Peserta
                         </div>
+                        {exam.targetClass && (
+                          <div className="flex items-center gap-2">
+                            <Check size={14} className="text-indigo-400" /> Kelas: {exam.targetClass}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -298,9 +370,9 @@ export default function Exams() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg bg-white rounded-[32px] shadow-2xl overflow-hidden"
+              className="relative w-full max-w-2xl bg-white rounded-[32px] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
             >
-              <div className="p-8">
+              <div className="p-8 overflow-y-auto">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-bold text-slate-800">Buat Ujian Baru</h3>
                   <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
@@ -308,18 +380,19 @@ export default function Exams() {
                   </button>
                 </div>
                 
-                <div className="space-y-5">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Judul Ujian</label>
-                    <Input 
-                      placeholder="Contoh: PTS Ganjil Informatika" 
-                      className="h-12 rounded-xl border-slate-200"
-                      value={newExam.title}
-                      onChange={e => setNewExam({ ...newExam, title: e.target.value })}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-6">
+                  {/* Exam Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Judul Ujian</label>
+                      <Input 
+                        placeholder="Contoh: PTS Ganjil Informatika" 
+                        className="h-12 rounded-xl border-slate-200"
+                        value={newExam.title}
+                        onChange={e => setNewExam({ ...newExam, title: e.target.value })}
+                      />
+                    </div>
+                    
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mata Pelajaran</label>
                       <select 
@@ -332,6 +405,22 @@ export default function Exams() {
                         <option>Jaringan</option>
                       </select>
                     </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Kelas</label>
+                      <select 
+                        className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={newExam.targetClass}
+                        onChange={e => setNewExam({ ...newExam, targetClass: e.target.value })}
+                      >
+                        {classes.length === 0 ? (
+                          <option value="">Tidak ada kelas</option>
+                        ) : (
+                          classes.map(c => <option key={c} value={c}>{c}</option>)
+                        )}
+                      </select>
+                    </div>
+
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Durasi</label>
                       <select 
@@ -339,28 +428,14 @@ export default function Exams() {
                         value={newExam.duration}
                         onChange={e => setNewExam({ ...newExam, duration: e.target.value })}
                       >
-                        <option>45 Menit</option>
-                        <option>90 Menit</option>
-                        <option>120 Menit</option>
-                        <option>180 Menit</option>
+                        <option>15 Menit</option>
+                        <option>25 Menit</option>
+                        <option>30 Menit</option>
                       </select>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori Leger</label>
-                      <select 
-                        className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-                        value={newExam.category}
-                        onChange={e => setNewExam({ ...newExam, category: e.target.value as any })}
-                      >
-                        <option value="formatif">Asesmen Formatif</option>
-                        <option value="sumatif">Sumatif Lingkup Materi</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kolom (1-15)</label>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kolom Leger</label>
                       <select 
                         className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                         value={newExam.columnNumber}
@@ -373,7 +448,102 @@ export default function Exams() {
                     </div>
                   </div>
 
-                  <div className="pt-4 flex gap-3">
+                  {/* Question Builder */}
+                  <div className="space-y-4 pt-4 border-t border-slate-100">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-bold text-slate-700">Daftar Soal ({newExam.questions.length})</h4>
+                      {!showQuestionForm && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => setShowQuestionForm(true)}
+                          className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-none rounded-lg font-bold"
+                        >
+                          <Plus size={16} className="mr-1" /> Tambah Soal
+                        </Button>
+                      )}
+                    </div>
+
+                    {showQuestionForm && (
+                      <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pertanyaan</label>
+                          <textarea 
+                            className="w-full p-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                            rows={3}
+                            placeholder="Ketik pertanyaan di sini..."
+                            value={currentQuestion.text}
+                            onChange={e => setCurrentQuestion({ ...currentQuestion, text: e.target.value })}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {currentQuestion.options.map((option, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <span className="w-6 h-6 flex items-center justify-center bg-white border border-slate-200 rounded-md text-[10px] font-bold text-slate-400">
+                                {String.fromCharCode(65 + idx)}
+                              </span>
+                              <Input 
+                                placeholder={`Pilihan ${String.fromCharCode(65 + idx)}`}
+                                className="h-10 rounded-lg text-xs"
+                                value={option}
+                                onChange={e => {
+                                  const newOptions = [...currentQuestion.options];
+                                  newOptions[idx] = e.target.value;
+                                  setCurrentQuestion({ ...currentQuestion, options: newOptions });
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Kunci Jawaban</label>
+                            <select 
+                              className="h-8 px-2 rounded-lg border border-slate-200 bg-white text-xs font-bold"
+                              value={currentQuestion.correctAnswer}
+                              onChange={e => setCurrentQuestion({ ...currentQuestion, correctAnswer: parseInt(e.target.value) })}
+                            >
+                              {currentQuestion.options.map((_, i) => (
+                                <option key={i} value={i}>Pilihan {String.fromCharCode(65 + i)}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => setShowQuestionForm(false)} className="text-slate-400 font-bold text-xs">Batal</Button>
+                            <Button size="sm" onClick={handleAddQuestion} className="bg-indigo-600 text-white font-bold text-xs">Simpan Soal</Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                      {newExam.questions.map((q, idx) => (
+                        <div key={idx} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-start justify-between group">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">SOAL {idx + 1}</span>
+                              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Kunci: {String.fromCharCode(65 + q.correctAnswer)}</span>
+                            </div>
+                            <p className="text-sm font-medium text-slate-700 line-clamp-2">{q.text}</p>
+                          </div>
+                          <button 
+                            onClick={() => setNewExam(prev => ({ ...prev, questions: prev.questions.filter((_, i) => i !== idx) }))}
+                            className="p-2 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ))}
+                      {newExam.questions.length === 0 && !showQuestionForm && (
+                        <div className="text-center py-8 border-2 border-dashed border-slate-100 rounded-[24px]">
+                          <p className="text-sm text-slate-400 font-medium italic">Belum ada soal ditambahkan</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex gap-3 sticky bottom-0 bg-white">
                     <Button 
                       variant="outline" 
                       className="flex-1 h-12 rounded-xl font-bold border-slate-200"
