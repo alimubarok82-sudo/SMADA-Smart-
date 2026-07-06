@@ -76,6 +76,13 @@ export default function StudentData() {
         grouped[key].sort((a, b) => a.displayName.localeCompare(b.displayName));
       });
       
+      // Update classes list with any new classes found from students
+      const classesFromStudents = Object.keys(grouped);
+      setClasses(prev => {
+        const combined = Array.from(new Set([...prev, ...classesFromStudents])).filter(Boolean).sort();
+        return combined.length > 0 ? combined : prev;
+      });
+      
       setStudentsByClass(grouped);
     } catch (error) {
       console.error("Error fetching students:", error);

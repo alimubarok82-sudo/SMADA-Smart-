@@ -53,10 +53,18 @@ export default function Login() {
         grouped[c].sort((a, b) => a.name.localeCompare(b.name));
       });
 
-      const finalClasses = classList.length > 0 ? classList : ['XE1', 'XE2', 'XE3', 'XE4'];
+      // Combine classes from collection and from student records
+      const classesFromStudents = Object.keys(grouped);
+      const combinedClasses = Array.from(new Set([...classList, ...classesFromStudents]))
+        .filter(Boolean)
+        .sort();
+
+      const finalClasses = combinedClasses.length > 0 ? combinedClasses : ['XE1', 'XE2', 'XE3', 'XE4'];
       setDbClasses(finalClasses);
       setDbStudents(grouped);
-      if (finalClasses.length > 0) {
+      
+      // Select first class if current selection is invalid or empty
+      if (finalClasses.length > 0 && (!selectedClass || !finalClasses.includes(selectedClass))) {
         setSelectedClass(finalClasses[0]);
       }
     } catch (error) {
