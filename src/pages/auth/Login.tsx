@@ -59,20 +59,15 @@ export default function Login() {
         .filter(Boolean)
         .sort();
 
-      const finalClasses = combinedClasses.length > 0 ? combinedClasses : ['XE1', 'XE2', 'XE3', 'XE4'];
-      setDbClasses(finalClasses);
+      setDbClasses(combinedClasses);
       setDbStudents(grouped);
       
       // Select first class if current selection is invalid or empty
-      if (finalClasses.length > 0 && (!selectedClass || !finalClasses.includes(selectedClass))) {
-        setSelectedClass(finalClasses[0]);
+      if (combinedClasses.length > 0 && (!selectedClass || !combinedClasses.includes(selectedClass))) {
+        setSelectedClass(combinedClasses[0]);
       }
     } catch (error) {
       console.error("Error fetching login data:", error);
-      // Fallback to defaults on error
-      const defaults = ['XE1', 'XE2', 'XE3', 'XE4'];
-      setDbClasses(defaults);
-      setSelectedClass(defaults[0]);
     } finally {
       setDataLoading(false);
     }

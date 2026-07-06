@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Calendar as CalendarIcon, CheckCircle2, XCircle, Clock, Search, Filter, Download } from 'lucide-react';
 import { motion } from 'motion/react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 interface Student {
@@ -13,35 +13,86 @@ interface Student {
 }
 
 export default function Attendance() {
-  const [selectedClass, setSelectedClass] = useState('XE2');
-  const [classes, setClasses] = useState<string[]>(['XE1', 'XE2', 'XE3', 'XE4']);
+  const [selectedClass, setSelectedClass] = useState('');
+  const [classes, setClasses] = useState<string[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [attendance, setAttendance] = useState<Record<string, 'hadir' | 'izin' | 'sakit' | 'alpa'>>({});
 
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchClasses = async () => {
+      try {
+        const snap = await getDocs(query(collection(db, 'classes'), orderBy('name')));
+        const classList = snap.docs.map(doc => doc.data().name).filter(Boolean);
+        
+        const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'siswa')));
+        const classesFromStudents = new Set<string>();
+        studentsSnap.docs.forEach(d => {
+          const cId = d.data().classId;
+          if (cId) classesFromStudents.add(cId);
+        });
+        
+        const combined = Array.from(new Set([...classList, ...Array.from(classesFromStudents)]))
+          .filter(Boolean)
+          .sort();
+
+        if (combined.length > 0) {
+          setClasses(combined);
+          if (!selectedClass || !combined.includes(selectedClass)) {
+            setSelectedClass(combined[0]);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching classes:", error);
+      }
+    };
+    fetchClasses();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedClass) return;
+    const fetchStudentsAndAttendance = async () => {
       setLoading(true);
       try {
+        // 1. Fetch Students
         const q = query(collection(db, 'users'), where('role', '==', 'siswa'), where('classId', '==', selectedClass));
         const querySnapshot = await getDocs(q);
         const studentsData: Student[] = [];
         querySnapshot.forEach((doc) => {
           studentsData.push({ id: doc.id, ...doc.data() } as Student);
         });
-        setStudents(studentsData.sort((a, b) => a.displayName.localeCompare(b.displayName)));
+        const sortedStudents = studentsData.sort((a, b) => a.displayName.localeCompare(b.displayName));
+        setStudents(sortedStudents);
         
-        // Initialize mock attendance
-        const initialAttendance: Record<string, 'hadir' | 'izin' | 'sakit' | 'alpa'> = {};
-        studentsData.forEach(s => initialAttendance[s.id] = 'hadir');
-        setAttendance(initialAttendance);
+        // 2. Fetch Today's Attendance
+        const today = new Date().toISOString().split('T')[0];
+        const attQ = query(
+          collection(db, 'attendance'),
+          where('classId', '==', selectedClass),
+          where('date', '==', today)
+        );
+        const attSnap = await getDocs(attQ);
+        
+        const currentAttendance: Record<string, 'hadir' | 'izin' | 'sakit' | 'alpa'> = {};
+        // Initialize all as alpa (default if no check-in)
+        sortedStudents.forEach(s => currentAttendance[s.id] = 'alpa');
+        
+        // Fill with actual check-ins
+        attSnap.forEach(doc => {
+          const data = doc.data();
+          if (currentAttendance[data.studentId]) {
+            currentAttendance[data.studentId] = data.status;
+          }
+        });
+
+        setAttendance(currentAttendance);
       } catch (error) {
-        console.error("Error fetching students:", error);
+        console.error("Error fetching attendance data:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchStudents();
+    fetchStudentsAndAttendance();
   }, [selectedClass]);
 
   const stats = {

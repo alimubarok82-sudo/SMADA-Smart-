@@ -44,9 +44,14 @@ export default function AdminDashboard() {
       const examsSnap = await getDocs(query(collection(db, 'exams'), where('status', '==', 'active')));
       const activeExams = examsSnap.size;
 
-      // 3. Total Classes
+      // 3. Total Classes (From collection and students)
       const classesSnap = await getDocs(collection(db, 'classes'));
-      const totalClasses = classesSnap.size || 4; // Fallback to 4 if none in DB yet
+      const classNames = new Set(classesSnap.docs.map(d => d.data().name));
+      studentsSnap.docs.forEach(d => {
+        const cId = d.data().classId;
+        if (cId) classNames.add(cId);
+      });
+      const totalClasses = classNames.size;
 
       // 4. Avg Grade
       const resultsSnap = await getDocs(collection(db, 'exam_results'));

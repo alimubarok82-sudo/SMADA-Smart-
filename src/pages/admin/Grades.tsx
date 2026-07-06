@@ -27,11 +27,27 @@ export default function Grades() {
 
   const fetchClasses = async () => {
     try {
+      // 1. Fetch from classes collection
       const snap = await getDocs(query(collection(db, 'classes'), orderBy('name')));
-      const classList = snap.docs.map(doc => doc.data().name);
-      if (classList.length > 0) {
-        setClasses(classList);
-        if (!selectedClass) setSelectedClass(classList[0]);
+      const classList = snap.docs.map(doc => doc.data().name).filter(Boolean);
+      
+      // 2. Fetch from students to find any other classes
+      const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'siswa')));
+      const classesFromStudents = new Set<string>();
+      studentsSnap.docs.forEach(d => {
+        const cId = d.data().classId;
+        if (cId) classesFromStudents.add(cId);
+      });
+      
+      const combined = Array.from(new Set([...classList, ...Array.from(classesFromStudents)]))
+        .filter(Boolean)
+        .sort();
+
+      if (combined.length > 0) {
+        setClasses(combined);
+        if (!selectedClass || !combined.includes(selectedClass)) {
+          setSelectedClass(combined[0]);
+        }
       } else {
         const defaults = ['XE1', 'XE2', 'XE3', 'XE4'];
         setClasses(defaults);

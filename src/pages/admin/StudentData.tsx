@@ -31,16 +31,30 @@ export default function StudentData() {
     try {
       const q = query(collection(db, 'classes'), orderBy('name'));
       const snap = await getDocs(q);
-      const classList = snap.docs.map(doc => doc.data().name);
+      const classList = snap.docs.map(doc => doc.data().name).filter(Boolean);
       
-      if (classList.length === 0) {
-        // Init with defaults if empty
+      // Also check students for classes
+      const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'siswa')));
+      const classesFromStudents = new Set<string>();
+      studentsSnap.docs.forEach(d => {
+        const cId = d.data().classId;
+        if (cId) classesFromStudents.add(cId);
+      });
+
+      const combined = Array.from(new Set([...classList, ...Array.from(classesFromStudents)]))
+        .filter(Boolean)
+        .sort();
+      
+      if (combined.length === 0) {
+        // Only use defaults if absolutely no classes found anywhere
         const defaults = ['XE1', 'XE2', 'XE3', 'XE4'];
         setClasses(defaults);
         setSelectedClass(defaults[0]);
       } else {
-        setClasses(classList);
-        setSelectedClass(classList[0]);
+        setClasses(combined);
+        if (!selectedClass || !combined.includes(selectedClass)) {
+          setSelectedClass(combined[0]);
+        }
       }
     } catch (error) {
       console.error("Error fetching classes:", error);
