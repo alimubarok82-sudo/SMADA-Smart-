@@ -1,0 +1,6 @@
+{
+  "name": "SMADA Smart School",
+  "description": "Sistem Ujian Online, Absensi, Penilaian, Portofolio, dan Dashboard Sekolah.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
