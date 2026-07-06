@@ -26,16 +26,19 @@ export default function Login() {
 
   const fetchInitialData = async () => {
     try {
-      // Fetch Classes
-      const classesSnap = await getDocs(query(collection(db, 'classes'), orderBy('name')));
-      const classList = classesSnap.docs.map(d => d.data().name);
+      // Fetch Classes - try without orderBy first to avoid index errors
+      const classesSnap = await getDocs(collection(db, 'classes'));
+      const classList = classesSnap.docs.map(d => d.data().name).filter(Boolean).sort();
       
       // Fetch all students to group them
-      const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'siswa')));
+      // In a real app we'd query by role, but for robustness we fetch and filter
+      const studentsSnap = await getDocs(collection(db, 'users'));
       const grouped: Record<string, { id: string, name: string, password?: string }[]> = {};
       
       studentsSnap.docs.forEach(d => {
         const data = d.data();
+        if (data.role !== 'siswa') return;
+        
         const cId = data.classId || 'Unassigned';
         if (!grouped[cId]) grouped[cId] = [];
         grouped[cId].push({ 
@@ -50,11 +53,18 @@ export default function Login() {
         grouped[c].sort((a, b) => a.name.localeCompare(b.name));
       });
 
-      setDbClasses(classList.length > 0 ? classList : ['XE1', 'XE2', 'XE3', 'XE4']);
+      const finalClasses = classList.length > 0 ? classList : ['XE1', 'XE2', 'XE3', 'XE4'];
+      setDbClasses(finalClasses);
       setDbStudents(grouped);
-      if (classList.length > 0) setSelectedClass(classList[0]);
+      if (finalClasses.length > 0) {
+        setSelectedClass(finalClasses[0]);
+      }
     } catch (error) {
       console.error("Error fetching login data:", error);
+      // Fallback to defaults on error
+      const defaults = ['XE1', 'XE2', 'XE3', 'XE4'];
+      setDbClasses(defaults);
+      setSelectedClass(defaults[0]);
     } finally {
       setDataLoading(false);
     }
