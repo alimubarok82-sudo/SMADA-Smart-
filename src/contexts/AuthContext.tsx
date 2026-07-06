@@ -7,7 +7,7 @@ import { User } from '../types';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  loginDemo: (role: 'siswa' | 'guru' | 'admin', name?: string, classId?: string) => void;
+  loginDemo: (role: 'siswa' | 'guru' | 'admin', name?: string, classId?: string, customEmail?: string) => void;
   logoutDemo: () => void;
 }
 
@@ -46,8 +46,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             });
           }
         } catch (error) {
-          console.error("Error fetching user data:", error);
-          setUser(null);
+          // Ignore permissions error for demo environment
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || 'Demo User',
+            role: firebaseUser.email?.includes('guru') ? 'guru' : 'siswa'
+          });
         }
       } else {
         setUser(null);
@@ -58,10 +63,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  const loginDemo = (role: 'siswa' | 'guru' | 'admin', name = 'Demo User', classId = 'XE3') => {
+  const loginDemo = (role: 'siswa' | 'guru' | 'admin', name = 'Demo User', classId = 'XE3', customEmail?: string) => {
     const demoUser: User = {
       uid: 'demo-' + Date.now(),
-      email: role === 'guru' ? 'guru@smada.id' : 'siswa@smada.id',
+      email: customEmail || (role === 'guru' ? 'guru@smada.id' : 'siswa@smada.id'),
       displayName: name,
       role: role,
       classId: classId

@@ -66,7 +66,7 @@ export default function Login() {
         });
       } catch (createErr: any) {
         if (createErr.code === 'auth/operation-not-allowed') {
-          loginDemo('siswa', selectedName, selectedClass);
+          loginDemo('siswa', selectedName, selectedClass, syntheticEmail);
           return;
         }
         if (createErr.code === 'auth/weak-password') {
@@ -106,7 +106,7 @@ export default function Login() {
         });
       } catch (createErr: any) {
         if (createErr.code === 'auth/operation-not-allowed') {
-          loginDemo('guru', 'Guru SMADA');
+          loginDemo('guru', 'Guru SMADA', undefined, email);
           return;
         }
         if (createErr.code === 'auth/weak-password') {
