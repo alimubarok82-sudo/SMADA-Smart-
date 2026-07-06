@@ -1,28 +1,34 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { Download, Search, Filter, ChevronDown, GraduationCap, Medal, AlertCircle } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Download, Search, Filter, GraduationCap, Medal, AlertCircle, Settings, X, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 const MOCK_GRADES = [
-  { id: '1', name: 'ADIT SOPO', grades: { algorithms: 85, programming: 92, networking: 88, database: 90, security: 78 } },
-  { id: '2', name: 'AISYAH NIRMALA PUTRI TOIRINA', grades: { algorithms: 95, programming: 98, networking: 94, database: 92, security: 96 } },
-  { id: '3', name: 'ANASTASYA BIALFINA', grades: { algorithms: 72, programming: 75, networking: 82, database: 80, security: 85 } },
-  { id: '4', name: 'ANISWATUL HAMIDA', grades: { algorithms: 88, programming: 84, networking: 90, database: 86, security: 82 } },
-  { id: '5', name: 'Budi Santoso', grades: { algorithms: 65, programming: 70, networking: 75, database: 68, security: 72 } },
-];
-
-const SUBJECTS = [
-  { id: 'algorithms', name: 'ALGORITMA' },
-  { id: 'programming', name: 'PEMROGRAMAN' },
-  { id: 'networking', name: 'JARINGAN' },
-  { id: 'database', name: 'DATABASE' },
-  { id: 'security', name: 'KEAMANAN' },
+  { id: '1', name: 'ADIT SOPO', grades: { s1: 85, s2: 92, s3: 88, s4: 90, s5: 78 } },
+  { id: '2', name: 'AISYAH NIRMALA PUTRI TOIRINA', grades: { s1: 95, s2: 98, s3: 94, s4: 92, s5: 96 } },
+  { id: '3', name: 'ANASTASYA BIALFINA', grades: { s1: 72, s2: 75, s3: 82, s4: 80, s5: 85 } },
+  { id: '4', name: 'ANISWATUL HAMIDA', grades: { s1: 88, s2: 84, s3: 90, s4: 86, s5: 82 } },
+  { id: '5', name: 'Budi Santoso', grades: { s1: 65, s2: 70, s3: 75, s4: 68, s5: 72 } },
 ];
 
 export default function Grades() {
   const [selectedClass, setSelectedClass] = useState('XE2');
   const [selectedTerm, setSelectedTerm] = useState('Ganjil 2023/2024');
+  const [showEditSubjects, setShowEditSubjects] = useState(false);
+  const [subjects, setSubjects] = useState([
+    { id: 's1', name: 'ALGORITMA' },
+    { id: 's2', name: 'PEMROGRAMAN' },
+    { id: 's3', name: 'JARINGAN' },
+    { id: 's4', name: 'DATABASE' },
+    { id: 's5', name: 'KEAMANAN' },
+  ]);
+  const [editingSubjects, setEditingSubjects] = useState([...subjects]);
+
+  const handleSaveSubjects = () => {
+    setSubjects([...editingSubjects]);
+    setShowEditSubjects(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -44,14 +50,24 @@ export default function Grades() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="md:col-span-1 space-y-4">
           <Card className="rounded-3xl border-slate-100 shadow-sm bg-white overflow-hidden">
-            <CardHeader className="py-4 px-6 bg-slate-50 border-b border-slate-100">
+            <CardHeader className="py-4 px-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <CardTitle className="text-xs font-bold uppercase tracking-widest text-slate-400">Konfigurasi</CardTitle>
+              <button 
+                onClick={() => {
+                  setEditingSubjects([...subjects]);
+                  setShowEditSubjects(true);
+                }}
+                className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-400 transition-colors"
+                title="Edit Nama Mata Pelajaran"
+              >
+                <Settings size={14} />
+              </button>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Pilih Kelas</label>
                 <select 
-                  className="w-full h-11 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full h-11 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                   value={selectedClass}
                   onChange={(e) => setSelectedClass(e.target.value)}
                 >
@@ -64,7 +80,7 @@ export default function Grades() {
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Semester</label>
                 <select 
-                  className="w-full h-11 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full h-11 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                   value={selectedTerm}
                   onChange={(e) => setSelectedTerm(e.target.value)}
                 >
@@ -118,7 +134,7 @@ export default function Grades() {
                 <tr className="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-widest border-b border-slate-100">
                   <th className="px-6 py-4 w-12 text-center">No</th>
                   <th className="px-6 py-4">Nama Siswa</th>
-                  {SUBJECTS.map(sub => (
+                  {subjects.map(sub => (
                     <th key={sub.id} className="px-4 py-4 text-center">{sub.name}</th>
                   ))}
                   <th className="px-6 py-4 text-center bg-indigo-50/30 text-indigo-600">RATA2</th>
@@ -126,14 +142,14 @@ export default function Grades() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {MOCK_GRADES.map((student, idx) => {
-                  const average = Object.values(student.grades).reduce((p, c) => p + c, 0) / SUBJECTS.length;
+                  const average = Object.values(student.grades).reduce((p, c) => p + c, 0) / subjects.length;
                   return (
                     <tr key={student.id} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-6 py-4 text-xs text-slate-400 font-medium text-center">{idx + 1}</td>
                       <td className="px-6 py-4">
                         <div className="font-bold text-slate-700 text-xs uppercase">{student.name}</div>
                       </td>
-                      {SUBJECTS.map(sub => {
+                      {subjects.map(sub => {
                         const grade = student.grades[sub.id as keyof typeof student.grades];
                         return (
                           <td key={sub.id} className="px-4 py-4 text-center">
@@ -162,6 +178,69 @@ export default function Grades() {
           </div>
         </Card>
       </div>
+
+      {/* Edit Subjects Modal */}
+      <AnimatePresence>
+        {showEditSubjects && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowEditSubjects(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[32px] shadow-2xl overflow-hidden"
+            >
+              <div className="p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-slate-800">Edit Mata Pelajaran</h3>
+                  <button onClick={() => setShowEditSubjects(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  {editingSubjects.map((sub, i) => (
+                    <div key={sub.id} className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Subjek {i+1}</label>
+                      <input 
+                        className="w-full h-11 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold uppercase outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                        value={sub.name}
+                        onChange={(e) => {
+                          const newSubs = [...editingSubjects];
+                          newSubs[i].name = e.target.value.toUpperCase();
+                          setEditingSubjects(newSubs);
+                        }}
+                      />
+                    </div>
+                  ))}
+
+                  <div className="pt-6 flex gap-3">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 h-12 rounded-xl font-bold border-slate-200"
+                      onClick={() => setShowEditSubjects(false)}
+                    >
+                      Batal
+                    </Button>
+                    <Button 
+                      className="flex-1 h-12 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100"
+                      onClick={handleSaveSubjects}
+                    >
+                      <Check className="w-5 h-5 mr-2" /> Simpan
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

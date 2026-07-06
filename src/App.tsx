@@ -11,6 +11,7 @@ import StudentData from './pages/admin/StudentData';
 import Attendance from './pages/admin/Attendance';
 import Exams from './pages/admin/Exams';
 import Grades from './pages/admin/Grades';
+import Submissions from './pages/admin/Submissions';
 
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
   const { user, loading } = useAuth();
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="attendance" element={<Attendance />} />
             <Route path="exams" element={<Exams />} />
             <Route path="grades" element={<Grades />} />
+            <Route path="submissions" element={<Submissions />} />
             <Route path="reports" element={<div>Raport</div>} />
             <Route path="settings" element={<div>Pengaturan</div>} />
           </Route>

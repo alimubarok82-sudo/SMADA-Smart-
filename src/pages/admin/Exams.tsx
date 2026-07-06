@@ -2,17 +2,55 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, Search } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, Search, X, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
-const MOCK_EXAMS = [
+interface Exam {
+  id: string;
+  title: string;
+  subject: string;
+  date: string;
+  duration: string;
+  status: 'upcoming' | 'active' | 'completed';
+  participants: number;
+}
+
+const INITIAL_EXAMS: Exam[] = [
   { id: '1', title: 'PTS - Algoritma dan Struktur Data', subject: 'Informatika', date: '2024-03-20', duration: '90 Menit', status: 'upcoming', participants: 120 },
   { id: '2', title: 'Ujian Harian Pemrograman Python', subject: 'Informatika', date: '2024-03-15', duration: '45 Menit', status: 'active', participants: 35 },
   { id: '3', title: 'Simulasi Sertifikasi Jaringan Dasar', subject: 'Informatika', date: '2024-03-10', duration: '180 Menit', status: 'completed', participants: 450 },
 ];
 
 export default function Exams() {
+  const [exams, setExams] = useState<Exam[]>(INITIAL_EXAMS);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newExam, setNewExam] = useState({ title: '', subject: 'Informatika', duration: '90 Menit' });
+
+  const handleCreateExam = () => {
+    if (!newExam.title) return;
+    const exam: Exam = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: newExam.title,
+      subject: newExam.subject,
+      date: new Date().toISOString().split('T')[0],
+      duration: newExam.duration,
+      status: 'upcoming',
+      participants: 0,
+    };
+    setExams([exam, ...exams]);
+    setNewExam({ title: '', subject: 'Informatika', duration: '90 Menit' });
+    setShowCreateModal(false);
+  };
+
+  const updateStatus = (id: string, status: 'upcoming' | 'active' | 'completed') => {
+    setExams(exams.map(e => e.id === id ? { ...e, status } : e));
+  };
+
+  const filteredExams = exams.filter(e => 
+    e.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    e.subject.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -21,14 +59,18 @@ export default function Exams() {
           <h2 className="text-2xl font-bold text-slate-800">Sistem Ujian Online</h2>
           <p className="text-slate-500 text-sm">Kelola bank soal dan jadwal ujian sekolah</p>
         </div>
-        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl px-6 h-12 font-bold shadow-lg shadow-indigo-100">
+        <Button 
+          onClick={() => setShowCreateModal(true)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl px-6 h-12 font-bold shadow-lg shadow-indigo-100"
+        >
           <Plus className="w-5 h-5 mr-2" /> Buat Ujian Baru
         </Button>
       </div>
 
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: 'Total Ujian', value: '42', icon: <FileText className="text-blue-500" />, sub: 'Tahun Ajaran 2023/2024' },
+          { label: 'Total Ujian', value: exams.length.toString(), icon: <FileText className="text-blue-500" />, sub: 'Tahun Ajaran 2023/2024' },
           { label: 'Siswa Aktif', value: '840', icon: <Users className="text-emerald-500" />, sub: 'Terdaftar di Sistem' },
           { label: 'Rata-rata Nilai', value: '78.4', icon: <BarChart3 className="text-amber-500" />, sub: 'Dari 12.5k Jawaban' },
         ].map((stat, i) => (
@@ -48,6 +90,7 @@ export default function Exams() {
         ))}
       </div>
 
+      {/* Search and List */}
       <div className="space-y-4">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-lg font-bold text-slate-800">Jadwal & Riwayat Ujian</h3>
@@ -63,10 +106,11 @@ export default function Exams() {
         </div>
 
         <div className="grid grid-cols-1 gap-4">
-          {MOCK_EXAMS.map((exam) => (
+          {filteredExams.map((exam) => (
             <motion.div
               key={exam.id}
-              whileHover={{ y: -2 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
               className="group"
             >
               <Card className="rounded-3xl border-slate-100 shadow-sm bg-white overflow-hidden hover:shadow-md transition-all">
@@ -90,6 +134,11 @@ export default function Exams() {
                             SEDANG BERLANGSUNG
                           </span>
                         )}
+                        {exam.status === 'completed' && (
+                          <span className="flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold">
+                            SELESAI
+                          </span>
+                        )}
                       </div>
                       <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500">
                         <div className="flex items-center gap-2">
@@ -102,18 +151,41 @@ export default function Exams() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" className="h-10 px-4 rounded-xl border-slate-200 font-bold text-slate-600">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-10 px-4 rounded-xl border-slate-200 font-bold text-slate-600"
+                        onClick={() => alert(`Detail untuk: ${exam.title}`)}
+                      >
                         <Settings size={16} className="mr-2" /> Detail
                       </Button>
-                      <Button className={`h-10 px-6 rounded-xl font-bold shadow-lg transition-all ${
-                        exam.status === 'active' ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-100' :
-                        exam.status === 'upcoming' ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100' :
-                        'bg-slate-800 hover:bg-black text-white shadow-slate-100'
-                      }`}>
-                        {exam.status === 'active' ? <><XCircle size={16} className="mr-2" /> Berhentikan</> :
-                         exam.status === 'upcoming' ? <><Play size={16} className="mr-2" /> Mulai Sekarang</> :
-                         <><BarChart3 size={16} className="mr-2" /> Lihat Hasil</>}
-                      </Button>
+                      
+                      {exam.status === 'upcoming' && (
+                        <Button 
+                          onClick={() => updateStatus(exam.id, 'active')}
+                          className="h-10 px-6 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100"
+                        >
+                          <Play size={16} className="mr-2" /> Mulai Sekarang
+                        </Button>
+                      )}
+
+                      {exam.status === 'active' && (
+                        <Button 
+                          onClick={() => updateStatus(exam.id, 'completed')}
+                          className="h-10 px-6 rounded-xl font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-100"
+                        >
+                          <XCircle size={16} className="mr-2" /> Berhentikan
+                        </Button>
+                      )}
+
+                      {exam.status === 'completed' && (
+                        <Button 
+                          onClick={() => alert('Menampilkan hasil ujian...')}
+                          className="h-10 px-6 rounded-xl font-bold bg-slate-800 hover:bg-black text-white shadow-lg shadow-slate-100"
+                        >
+                          <BarChart3 size={16} className="mr-2" /> Lihat Hasil
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -122,6 +194,92 @@ export default function Exams() {
           ))}
         </div>
       </div>
+
+      {/* Create Modal */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCreateModal(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-[32px] shadow-2xl overflow-hidden"
+            >
+              <div className="p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-slate-800">Buat Ujian Baru</h3>
+                  <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Judul Ujian</label>
+                    <Input 
+                      placeholder="Contoh: PTS Ganjil Informatika" 
+                      className="h-12 rounded-xl border-slate-200"
+                      value={newExam.title}
+                      onChange={e => setNewExam({ ...newExam, title: e.target.value })}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mata Pelajaran</label>
+                      <select 
+                        className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={newExam.subject}
+                        onChange={e => setNewExam({ ...newExam, subject: e.target.value })}
+                      >
+                        <option>Informatika</option>
+                        <option>Pemrograman</option>
+                        <option>Jaringan</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Durasi</label>
+                      <select 
+                        className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={newExam.duration}
+                        onChange={e => setNewExam({ ...newExam, duration: e.target.value })}
+                      >
+                        <option>45 Menit</option>
+                        <option>90 Menit</option>
+                        <option>120 Menit</option>
+                        <option>180 Menit</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex gap-3">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 h-12 rounded-xl font-bold border-slate-200"
+                      onClick={() => setShowCreateModal(false)}
+                    >
+                      Batal
+                    </Button>
+                    <Button 
+                      className="flex-1 h-12 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100"
+                      onClick={handleCreateExam}
+                    >
+                      <Check className="w-5 h-5 mr-2" /> Simpan Ujian
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
