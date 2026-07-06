@@ -47,18 +47,28 @@ export default function Login() {
       navigate('/dashboard');
     } catch (err: any) {
       // Auto-register for demo purposes if login fails
-      try {
-        const cred = await createUserWithEmailAndPassword(auth, syntheticEmail, password);
-        await updateProfile(cred.user, { displayName: selectedName });
-        await setDoc(doc(db, 'users', cred.user.uid), {
-          email: syntheticEmail,
-          displayName: selectedName,
-          role: 'siswa',
-          classId: selectedClass,
-          createdAt: new Date().toISOString()
-        });
-        navigate('/dashboard');
-      } catch (createErr: any) {
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-login-credentials') {
+        try {
+          const cred = await createUserWithEmailAndPassword(auth, syntheticEmail, password);
+          await updateProfile(cred.user, { displayName: selectedName });
+          await setDoc(doc(db, 'users', cred.user.uid), {
+            email: syntheticEmail,
+            displayName: selectedName,
+            role: 'siswa',
+            classId: selectedClass,
+            createdAt: new Date().toISOString()
+          });
+          navigate('/dashboard');
+        } catch (createErr: any) {
+          if (createErr.code === 'auth/weak-password') {
+            setError('Password minimal harus 6 karakter.');
+          } else if (createErr.code === 'auth/email-already-in-use') {
+            setError('Nama ini sudah terdaftar. Periksa kembali password Anda.');
+          } else {
+            setError('Login gagal. ' + createErr.message);
+          }
+        }
+      } else {
         setError('Login gagal. Periksa kembali password Anda.');
       }
     } finally {
@@ -80,18 +90,28 @@ export default function Login() {
       navigate('/dashboard');
     } catch (err: any) {
       // Auto-register for demo purposes
-      try {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(cred.user, { displayName: 'Guru SMADA' });
-        await setDoc(doc(db, 'users', cred.user.uid), {
-          email,
-          displayName: 'Guru SMADA',
-          role: 'guru',
-          createdAt: new Date().toISOString()
-        });
-        navigate('/dashboard');
-      } catch (createErr: any) {
-        setError('Login gagal. Periksa email dan password Anda.');
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-login-credentials') {
+        try {
+          const cred = await createUserWithEmailAndPassword(auth, email, password);
+          await updateProfile(cred.user, { displayName: 'Guru SMADA' });
+          await setDoc(doc(db, 'users', cred.user.uid), {
+            email,
+            displayName: 'Guru SMADA',
+            role: 'guru',
+            createdAt: new Date().toISOString()
+          });
+          navigate('/dashboard');
+        } catch (createErr: any) {
+          if (createErr.code === 'auth/weak-password') {
+            setError('Password minimal harus 6 karakter.');
+          } else if (createErr.code === 'auth/email-already-in-use') {
+            setError('Email sudah terdaftar. Periksa kembali password Anda.');
+          } else {
+            setError('Login gagal. ' + createErr.message);
+          }
+        }
+      } else {
+         setError('Login gagal. Periksa kembali email dan password Anda.');
       }
     } finally {
       setLoading(false);
