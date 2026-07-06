@@ -20,8 +20,14 @@ const STUDENTS: Record<string, string[]> = {
 
 export default function Login() {
   const navigate = useNavigate();
-  const { loginDemo } = useAuth();
+  const { loginDemo, user } = useAuth();
   const [mode, setMode] = useState<'siswa' | 'guru'>('siswa');
+
+  React.useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
   
   // Siswa State
   const [selectedClass, setSelectedClass] = useState('XE3');
@@ -46,7 +52,6 @@ export default function Login() {
 
     try {
       await signInWithEmailAndPassword(auth, syntheticEmail, password);
-      navigate('/dashboard');
     } catch (err: any) {
       // Auto-register for demo purposes if login fails
       try {
@@ -59,11 +64,9 @@ export default function Login() {
           classId: selectedClass,
           createdAt: new Date().toISOString()
         });
-        navigate('/dashboard');
       } catch (createErr: any) {
         if (createErr.code === 'auth/operation-not-allowed') {
           loginDemo('siswa', selectedName, selectedClass);
-          navigate('/dashboard');
           return;
         }
         if (createErr.code === 'auth/weak-password') {
@@ -90,7 +93,6 @@ export default function Login() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/dashboard');
     } catch (err: any) {
       // Auto-register for demo purposes
       try {
@@ -102,11 +104,9 @@ export default function Login() {
           role: 'guru',
           createdAt: new Date().toISOString()
         });
-        navigate('/dashboard');
       } catch (createErr: any) {
         if (createErr.code === 'auth/operation-not-allowed') {
           loginDemo('guru', 'Guru SMADA');
-          navigate('/dashboard');
           return;
         }
         if (createErr.code === 'auth/weak-password') {
