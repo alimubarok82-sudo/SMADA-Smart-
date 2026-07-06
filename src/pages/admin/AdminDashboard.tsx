@@ -84,9 +84,9 @@ export default function AdminDashboard() {
           </div>
           <div className="space-y-4">
             {[
-              { title: 'Ujian Matematika Dimulai', desc: 'Kelas XII IPA 1', time: '10 menit lalu', color: 'bg-indigo-600', code: 'MTK' },
-              { title: 'Laporan Nilai Diunggah', desc: 'Oleh Ibu Ratna (Fisika)', time: '1 jam lalu', color: 'bg-emerald-600', code: 'FIS' },
-              { title: 'Siswa Baru Ditambahkan', desc: 'Andi Saputra', time: 'Kemarin', color: 'bg-orange-600', code: 'NEW' },
+              { title: 'Ujian Pemrograman Dasar', desc: 'Kelas XE1 & XE2', time: '10 menit lalu', color: 'bg-indigo-600', code: 'PRG' },
+              { title: 'Laporan Praktik Jaringan', desc: 'Oleh Bapak Ali (Informatika)', time: '1 jam lalu', color: 'bg-emerald-600', code: 'NET' },
+              { title: 'Siswa Baru Ditambahkan', desc: 'Alfy Nur Ashifak', time: 'Kemarin', color: 'bg-orange-600', code: 'INF' },
             ].map((activity, i) => (
               <div key={i} className={`p-3 bg-slate-50 border border-slate-100 rounded-2xl flex items-center space-x-3 ${i > 0 ? 'opacity-80' : ''}`}>
                 <div className={`w-10 h-10 ${activity.color} text-white rounded-xl flex items-center justify-center font-bold text-xs shrink-0`}>

@@ -75,7 +75,7 @@ export const DashboardLayout = () => {
           <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm shadow-inner shrink-0">
             <div className="w-4 h-4 bg-white rounded-sm rotate-45"></div>
           </div>
-          <span className="text-white font-bold tracking-tight text-lg whitespace-nowrap overflow-hidden text-ellipsis">SMADA SMART</span>
+          <span className="text-white font-bold tracking-tight text-lg whitespace-nowrap overflow-hidden text-ellipsis">SMADA INFORMATIKA</span>
           <button className="lg:hidden ml-auto shrink-0" onClick={() => setSidebarOpen(false)}>
             <X size={24} className="text-white" />
           </button>

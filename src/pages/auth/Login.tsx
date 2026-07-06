@@ -138,8 +138,8 @@ export default function Login() {
                   <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-indigo-50 text-indigo-500 mb-6">
                     <UserIcon size={40} />
                   </div>
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-800">Selamat Datang!</h1>
-                  <p className="text-slate-500 mt-2">Masuk untuk memulai ujian.</p>
+                  <h1 className="text-2xl font-bold tracking-tight text-slate-800">Informatika SMADA</h1>
+                  <p className="text-slate-500 mt-2">Masuk untuk memulai materi & ujian.</p>
                 </div>
 
                 <form onSubmit={handleStudentLogin} className="space-y-5">
@@ -209,8 +209,8 @@ export default function Login() {
                   <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 text-slate-500 mb-6">
                     <Lock size={40} />
                   </div>
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-800">Portal Guru</h1>
-                  <p className="text-slate-500 mt-2">Masuk untuk mengelola sistem sekolah.</p>
+                  <h1 className="text-2xl font-bold tracking-tight text-slate-800">Portal Guru Informatika</h1>
+                  <p className="text-slate-500 mt-2">Masuk untuk mengelola pembelajaran.</p>
                 </div>
 
                 <form onSubmit={handleGuruLogin} className="space-y-5">

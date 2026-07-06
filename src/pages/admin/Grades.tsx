@@ -5,19 +5,19 @@ import { Download, Search, Filter, ChevronDown, GraduationCap, Medal, AlertCircl
 import { motion } from 'motion/react';
 
 const MOCK_GRADES = [
-  { id: '1', name: 'ADIT SOPO', grades: { math: 85, science: 92, indonesian: 88, english: 90, history: 78 } },
-  { id: '2', name: 'AISYAH NIRMALA PUTRI TOIRINA', grades: { math: 95, science: 98, indonesian: 94, english: 92, history: 96 } },
-  { id: '3', name: 'ANASTASYA BIALFINA', grades: { math: 72, science: 75, indonesian: 82, english: 80, history: 85 } },
-  { id: '4', name: 'ANISWATUL HAMIDA', grades: { math: 88, science: 84, indonesian: 90, english: 86, history: 82 } },
-  { id: '5', name: 'Budi Santoso', grades: { math: 65, science: 70, indonesian: 75, english: 68, history: 72 } },
+  { id: '1', name: 'ADIT SOPO', grades: { algorithms: 85, programming: 92, networking: 88, database: 90, security: 78 } },
+  { id: '2', name: 'AISYAH NIRMALA PUTRI TOIRINA', grades: { algorithms: 95, programming: 98, networking: 94, database: 92, security: 96 } },
+  { id: '3', name: 'ANASTASYA BIALFINA', grades: { algorithms: 72, programming: 75, networking: 82, database: 80, security: 85 } },
+  { id: '4', name: 'ANISWATUL HAMIDA', grades: { algorithms: 88, programming: 84, networking: 90, database: 86, security: 82 } },
+  { id: '5', name: 'Budi Santoso', grades: { algorithms: 65, programming: 70, networking: 75, database: 68, security: 72 } },
 ];
 
 const SUBJECTS = [
-  { id: 'math', name: 'MTK' },
-  { id: 'science', name: 'IPA' },
-  { id: 'indonesian', name: 'BIND' },
-  { id: 'english', name: 'BING' },
-  { id: 'history', name: 'SEJ' },
+  { id: 'algorithms', name: 'ALGORITMA' },
+  { id: 'programming', name: 'PEMROGRAMAN' },
+  { id: 'networking', name: 'JARINGAN' },
+  { id: 'database', name: 'DATABASE' },
+  { id: 'security', name: 'KEAMANAN' },
 ];
 
 export default function Grades() {

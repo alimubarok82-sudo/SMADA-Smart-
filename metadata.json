@@ -1,6 +1,6 @@
 {
-  "name": "SMADA Smart School",
-  "description": "Sistem Ujian Online, Absensi, Penilaian, Portofolio, dan Dashboard Sekolah.",
+  "name": "Informatika SMADA",
+  "description": "Sistem Manajemen Pembelajaran (LMS) khusus mata pelajaran Informatika: Ujian Online, Absensi, dan Leger Nilai.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -6,9 +6,9 @@ import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, 
 import { motion } from 'motion/react';
 
 const MOCK_EXAMS = [
-  { id: '1', title: 'Penilaian Tengah Semester - Matematika', subject: 'Matematika', date: '2024-03-20', duration: '90 Menit', status: 'upcoming', participants: 120 },
-  { id: '2', title: 'Ujian Harian Sejarah Indonesia', subject: 'Sejarah', date: '2024-03-15', duration: '45 Menit', status: 'active', participants: 35 },
-  { id: '3', title: 'Simulasi UTBK 2024', subject: 'Campuran', date: '2024-03-10', duration: '180 Menit', status: 'completed', participants: 450 },
+  { id: '1', title: 'PTS - Algoritma dan Struktur Data', subject: 'Informatika', date: '2024-03-20', duration: '90 Menit', status: 'upcoming', participants: 120 },
+  { id: '2', title: 'Ujian Harian Pemrograman Python', subject: 'Informatika', date: '2024-03-15', duration: '45 Menit', status: 'active', participants: 35 },
+  { id: '3', title: 'Simulasi Sertifikasi Jaringan Dasar', subject: 'Informatika', date: '2024-03-10', duration: '180 Menit', status: 'completed', participants: 450 },
 ];
 
 export default function Exams() {
