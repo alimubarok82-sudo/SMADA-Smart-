@@ -7,6 +7,11 @@ import StudentDashboard from './pages/student/StudentDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ExamPage from './pages/student/Exam';
 
+import StudentData from './pages/admin/StudentData';
+import Attendance from './pages/admin/Attendance';
+import Exams from './pages/admin/Exams';
+import Grades from './pages/admin/Grades';
+
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
   const { user, loading } = useAuth();
   
@@ -35,10 +40,10 @@ export default function App() {
           <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route index element={<DashboardRouter />} />
             {/* Additional stub routes */}
-            <Route path="students" element={<div>Data Siswa</div>} />
-            <Route path="attendance" element={<div>Absensi Mingguan</div>} />
-            <Route path="exams" element={<div>Sistem Ujian</div>} />
-            <Route path="grades" element={<div>Leger Nilai</div>} />
+            <Route path="students" element={<StudentData />} />
+            <Route path="attendance" element={<Attendance />} />
+            <Route path="exams" element={<Exams />} />
+            <Route path="grades" element={<Grades />} />
             <Route path="reports" element={<div>Raport</div>} />
             <Route path="settings" element={<div>Pengaturan</div>} />
           </Route>

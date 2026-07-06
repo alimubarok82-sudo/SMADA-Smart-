@@ -1,0 +1,169 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Calendar as CalendarIcon, CheckCircle2, XCircle, Clock, Search, Filter } from 'lucide-react';
+import { motion } from 'motion/react';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
+
+interface Student {
+  id: string;
+  displayName: string;
+  classId: string;
+}
+
+export default function Attendance() {
+  const [selectedClass, setSelectedClass] = useState('XE2');
+  const [classes, setClasses] = useState<string[]>(['XE1', 'XE2', 'XE3', 'XE4']);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [attendance, setAttendance] = useState<Record<string, 'hadir' | 'izin' | 'sakit' | 'alpa'>>({});
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      setLoading(true);
+      try {
+        const q = query(collection(db, 'users'), where('role', '==', 'siswa'), where('classId', '==', selectedClass));
+        const querySnapshot = await getDocs(q);
+        const studentsData: Student[] = [];
+        querySnapshot.forEach((doc) => {
+          studentsData.push({ id: doc.id, ...doc.data() } as Student);
+        });
+        setStudents(studentsData.sort((a, b) => a.displayName.localeCompare(b.displayName)));
+        
+        // Initialize mock attendance
+        const initialAttendance: Record<string, 'hadir' | 'izin' | 'sakit' | 'alpa'> = {};
+        studentsData.forEach(s => initialAttendance[s.id] = 'hadir');
+        setAttendance(initialAttendance);
+      } catch (error) {
+        console.error("Error fetching students:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStudents();
+  }, [selectedClass]);
+
+  const stats = {
+    hadir: Object.values(attendance).filter(v => v === 'hadir').length,
+    izin: Object.values(attendance).filter(v => v === 'izin').length,
+    sakit: Object.values(attendance).filter(v => v === 'sakit').length,
+    alpa: Object.values(attendance).filter(v => v === 'alpa').length,
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Absensi Mingguan</h2>
+          <p className="text-slate-500 text-sm">Kelola kehadiran siswa harian dan mingguan</p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <div className="bg-white border border-slate-200 rounded-xl px-4 py-2 flex items-center space-x-2 shadow-sm text-sm text-slate-600">
+            <CalendarIcon className="w-4 h-4 text-indigo-500" />
+            <span className="font-medium">{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+          </div>
+          <select 
+            className="h-10 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[100px] shadow-sm"
+            value={selectedClass}
+            onChange={(e) => setSelectedClass(e.target.value)}
+          >
+            {classes.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Hadir', value: stats.hadir, color: 'bg-emerald-50 text-emerald-600 border-emerald-100', icon: <CheckCircle2 className="w-4 h-4" /> },
+          { label: 'Izin', value: stats.izin, color: 'bg-blue-50 text-blue-600 border-blue-100', icon: <Clock className="w-4 h-4" /> },
+          { label: 'Sakit', value: stats.sakit, color: 'bg-amber-50 text-amber-600 border-amber-100', icon: <Filter className="w-4 h-4" /> },
+          { label: 'Alpa', value: stats.alpa, color: 'bg-rose-50 text-rose-600 border-rose-100', icon: <XCircle className="w-4 h-4" /> },
+        ].map((stat, i) => (
+          <Card key={i} className={`border ${stat.color} shadow-sm rounded-2xl overflow-hidden`}>
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider opacity-70">{stat.label}</p>
+                <p className="text-2xl font-bold">{stat.value}</p>
+              </div>
+              <div className="p-2 bg-white/50 rounded-lg">
+                {stat.icon}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="rounded-3xl border-slate-100 shadow-sm overflow-hidden bg-white">
+        <CardHeader className="py-4 px-6 border-b border-slate-50 flex flex-row items-center justify-between">
+          <CardTitle className="text-lg font-bold text-slate-800">Daftar Siswa Kelas {selectedClass}</CardTitle>
+          <Button variant="outline" size="sm" className="h-9 rounded-xl border-slate-200">
+            <Download className="w-4 h-4 mr-2" /> Rekap Excel
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-widest border-b border-slate-100">
+                  <th className="px-6 py-4 w-16">No</th>
+                  <th className="px-6 py-4">Nama Lengkap</th>
+                  <th className="px-6 py-4 text-center">Status Kehadiran</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {loading ? (
+                  <tr>
+                    <td colSpan={3} className="px-6 py-12 text-center text-slate-400">
+                      Memuat data siswa...
+                    </td>
+                  </tr>
+                ) : students.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="px-6 py-12 text-center text-slate-400">
+                      Tidak ada siswa di kelas ini.
+                    </td>
+                  </tr>
+                ) : students.map((student, idx) => (
+                  <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4 text-sm text-slate-400 font-medium">{idx + 1}</td>
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-slate-700 text-sm uppercase">{student.displayName}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-center space-x-2">
+                        {[
+                          { id: 'hadir', label: 'H', color: 'bg-emerald-500 text-white', inactive: 'bg-slate-100 text-slate-400' },
+                          { id: 'izin', label: 'I', color: 'bg-blue-500 text-white', inactive: 'bg-slate-100 text-slate-400' },
+                          { id: 'sakit', label: 'S', color: 'bg-amber-500 text-white', inactive: 'bg-slate-100 text-slate-400' },
+                          { id: 'alpa', label: 'A', color: 'bg-rose-500 text-white', inactive: 'bg-slate-100 text-slate-400' },
+                        ].map(opt => (
+                          <button
+                            key={opt.id}
+                            onClick={() => setAttendance(prev => ({ ...prev, [student.id]: opt.id as any }))}
+                            className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                              attendance[student.id] === opt.id ? opt.color : opt.inactive
+                            } hover:scale-110`}
+                            title={opt.id.toUpperCase()}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <div className="flex justify-end">
+        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 rounded-xl h-12 font-bold shadow-lg shadow-indigo-200 transition-all">
+          Simpan Kehadiran Hari Ini
+        </Button>
+      </div>
+    </div>
+  );
+}
