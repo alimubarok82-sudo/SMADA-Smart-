@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/auth/Login';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import StudentDashboard from './pages/student/StudentDashboard';
-import StudentExams from './pages/student/StudentExams';
+import StudentResults from './pages/student/StudentResults';
 import StudentAttendance from './pages/student/StudentAttendance';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ExamPage from './pages/student/Exam';
@@ -38,7 +38,7 @@ const ExamRouter = () => {
   if (user?.role === 'admin' || user?.role === 'guru') {
     return <Exams />;
   }
-  return <StudentExams />;
+  return <StudentResults />;
 };
 
 const AttendanceRouter = () => {

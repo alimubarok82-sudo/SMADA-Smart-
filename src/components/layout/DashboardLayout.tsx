@@ -49,7 +49,7 @@ export const DashboardLayout = () => {
     // Siswa defaults
     return [
       { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
-      { name: 'Ujian Aktif', path: '/dashboard/exams', icon: <FileText size={20} /> },
+      { name: 'Ujian Terkirim', path: '/dashboard/exams', icon: <Send size={20} /> },
       { name: 'Presensi Harian', path: '/dashboard/attendance', icon: <CheckCircle size={20} /> },
     ];
   };
