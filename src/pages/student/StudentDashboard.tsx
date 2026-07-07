@@ -180,7 +180,7 @@ export default function StudentDashboard() {
               </div>
             </div>
             <div className="mt-auto">
-              <button className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-sm shadow-lg shadow-indigo-200 transition-all">
+              <button className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-base shadow-xl shadow-indigo-100 transition-all">
                 Check In Sekarang
               </button>
             </div>
@@ -241,10 +241,10 @@ export default function StudentDashboard() {
               <button
                 type="submit"
                 disabled={isSubmitting || !submissionValue.trim()}
-                className={`w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+                className={`w-full h-14 rounded-[20px] font-black text-base flex items-center justify-center gap-3 transition-all ${
                   submitted 
                     ? 'bg-emerald-500 text-white' 
-                    : 'bg-slate-800 hover:bg-black text-white shadow-lg shadow-slate-100 disabled:opacity-50'
+                    : 'bg-slate-800 hover:bg-black text-white shadow-xl shadow-slate-200 disabled:opacity-50 disabled:grayscale'
                 }`}
               >
                 {isSubmitting ? (

@@ -113,9 +113,9 @@ export default function StudentExams() {
                     </div>
                     <button 
                       onClick={() => window.location.assign(`/exam/${exam.id}`)}
-                      className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-200 transition-all flex items-center gap-2"
+                      className="h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-100 transition-all flex items-center gap-2"
                     >
-                      Mulai <ChevronRight size={14} />
+                      Mulai <ChevronRight size={16} />
                     </button>
                   </div>
                 </CardContent>

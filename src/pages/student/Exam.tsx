@@ -227,7 +227,7 @@ export default function ExamPage() {
                 <p className="text-slate-500 mt-2 font-medium">Jawaban Anda berhasil disimpan ke server.</p>
               </div>
               <Button 
-                className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold" 
+                className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg shadow-xl" 
                 onClick={() => navigate('/dashboard')}
               >
                 Kembali ke Dashboard
@@ -246,7 +246,12 @@ export default function ExamPage() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="text-center">
           <h2 className="text-xl font-bold text-slate-800">Ujian ini belum memiliki soal.</h2>
-          <Button onClick={() => navigate('/dashboard')} className="mt-4">Kembali</Button>
+          <Button 
+            onClick={() => navigate('/dashboard')} 
+            className="mt-6 h-14 px-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg shadow-xl shadow-indigo-100"
+          >
+            Kembali ke Dashboard
+          </Button>
         </div>
       </div>
     );
@@ -367,11 +372,11 @@ export default function ExamPage() {
           </Card>
 
           {/* Navigation */}
-          <div className="flex justify-between items-center px-2">
+          <div className="flex justify-between items-center px-2 py-4">
             <Button 
               variant="outline" 
               size="lg" 
-              className="h-12 rounded-xl font-bold text-slate-600 border-slate-200"
+              className="h-14 px-6 rounded-2xl font-bold text-slate-600 border-slate-200"
               onClick={() => setCurrentQ(prev => Math.max(0, prev - 1))}
               disabled={currentQ === 0}
             >
@@ -381,16 +386,16 @@ export default function ExamPage() {
             {currentQ === questions.length - 1 ? (
               <Button 
                 size="lg" 
-                className="h-12 rounded-xl px-8 font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100" 
+                className="h-14 rounded-2xl px-10 font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-200 text-lg" 
                 onClick={handleSubmit}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? <><Loader2 className="animate-spin mr-2" /> Memproses...</> : <>Kirim Ujian <CheckCircle className="ml-2" size={18} /></>}
+                {isSubmitting ? <><Loader2 className="animate-spin mr-2" /> Memproses...</> : <>Kirim Ujian <CheckCircle className="ml-2" size={20} /></>}
               </Button>
             ) : (
               <Button 
                 size="lg" 
-                className="h-12 rounded-xl px-8 font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100"
+                className="h-14 rounded-2xl px-10 font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-200 text-lg"
                 onClick={() => setCurrentQ(prev => Math.min(questions.length - 1, prev + 1))}
               >
                 Selanjutnya <ChevronRight className="ml-2" />
@@ -411,9 +416,9 @@ export default function ExamPage() {
                   <button
                     key={i}
                     onClick={() => setCurrentQ(i)}
-                    className={`h-10 rounded-xl text-sm font-bold transition-all ${
+                    className={`h-12 rounded-2xl text-sm font-black transition-all ${
                       currentQ === i 
-                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 scale-110 z-10' 
+                        ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 scale-110 z-10' 
                         : answers[i] !== undefined
                           ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
                           : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'
