@@ -27,6 +27,7 @@ export default function ExamPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [violations, setViolations] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
@@ -320,15 +321,6 @@ export default function ExamPage() {
             {formatTime(timeLeft)}
           </div>
           
-          <Button 
-            size="sm" 
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="h-10 px-6 rounded-xl font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100 active:scale-95 transition-all gap-2"
-          >
-            {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <>Kirim Ujian <CheckCircle size={16} /></>}
-          </Button>
-
           <button onClick={toggleFullscreen} className="text-slate-400 hover:text-slate-900 hidden md:block">
             {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
           </button>
@@ -393,18 +385,24 @@ export default function ExamPage() {
               <ChevronLeft className="mr-2" /> Sebelumnya
             </Button>
             
-            <Button 
-              size="lg" 
-              disabled={currentQ === questions.length - 1}
-              className={`h-14 rounded-2xl px-10 font-black text-white shadow-xl text-lg active:scale-95 transition-transform ${
-                currentQ === questions.length - 1 
-                ? 'bg-slate-200 text-slate-400 shadow-none cursor-not-allowed' 
-                : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'
-              }`}
-              onClick={() => setCurrentQ(prev => Math.min(questions.length - 1, prev + 1))}
-            >
-              Selanjutnya <ChevronRight className="ml-2" />
-            </Button>
+            {currentQ === questions.length - 1 ? (
+              <Button 
+                size="lg" 
+                className="h-14 rounded-2xl px-10 font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-200 text-lg active:scale-95 transition-transform" 
+                onClick={() => setShowConfirmModal(true)}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? <><Loader2 className="animate-spin mr-2" /> Memproses...</> : <>Kirim Ujian <CheckCircle className="ml-2" size={20} /></>}
+              </Button>
+            ) : (
+              <Button 
+                size="lg" 
+                className="h-14 rounded-2xl px-10 font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-200 text-lg active:scale-95 transition-transform"
+                onClick={() => setCurrentQ(prev => Math.min(questions.length - 1, prev + 1))}
+              >
+                Selanjutnya <ChevronRight className="ml-2" />
+              </Button>
+            )}
           </div>
         </div>
 
@@ -451,6 +449,53 @@ export default function ExamPage() {
         </div>
       </div>
       <div className="h-12" /> {/* Bottom spacing */}
+
+      {/* Confirmation Modal */}
+      <AnimatePresence>
+        {showConfirmModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowConfirmModal(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[32px] shadow-2xl p-8 text-center"
+            >
+              <div className="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <CheckCircle size={40} className="text-emerald-500" />
+              </div>
+              <h3 className="text-2xl font-black text-slate-800 mb-2">Selesai Mengerjakan?</h3>
+              <p className="text-slate-500 font-medium mb-8 leading-relaxed">
+                Pastikan semua jawaban sudah benar. Kamu tidak bisa mengubah jawaban setelah menekan tombol kirim.
+              </p>
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => {
+                    setShowConfirmModal(false);
+                    handleSubmit();
+                  }}
+                  className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg shadow-xl shadow-emerald-100 active:scale-95 transition-all"
+                >
+                  Ya, Kirim Sekarang
+                </Button>
+                <Button 
+                  variant="ghost"
+                  onClick={() => setShowConfirmModal(false)}
+                  className="w-full h-12 rounded-2xl font-bold text-slate-400 hover:text-slate-600"
+                >
+                  Belum, Cek Lagi
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
