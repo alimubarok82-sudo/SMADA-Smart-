@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Download, Upload, Pencil, Trash2, UserPlus, Loader2, Plus, X } from 'lucide-react';
+import { Download, Upload, Pencil, Trash2, UserPlus, Loader2, Plus, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { collection, getDocs, query, where, addDoc, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where, addDoc, orderBy, writeBatch, doc as firestoreDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -24,8 +24,11 @@ export default function StudentData() {
   const [studentsByClass, setStudentsByClass] = useState<Record<string, Student[]>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<{success: boolean, message: string} | null>(null);
   const [editingStudent, setEditingStudent] = useState<(Student & { password?: string }) | null>(null);
   const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchClasses = async () => {
     try {
@@ -90,13 +93,6 @@ export default function StudentData() {
         grouped[key].sort((a, b) => a.displayName.localeCompare(b.displayName));
       });
       
-      // Update classes list with any new classes found from students
-      const classesFromStudents = Object.keys(grouped);
-      setClasses(prev => {
-        const combined = Array.from(new Set([...prev, ...classesFromStudents])).filter(Boolean).sort();
-        return combined.length > 0 ? combined : prev;
-      });
-      
       setStudentsByClass(grouped);
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -157,7 +153,7 @@ export default function StudentData() {
     if (!editingStudent || !editingStudent.displayName.trim()) return;
     setSaving(true);
     try {
-      const { doc: firestoreDoc, updateDoc } = await import('firebase/firestore');
+      const { updateDoc } = await import('firebase/firestore');
       await updateDoc(firestoreDoc(db, 'users', editingStudent.id), {
         displayName: editingStudent.displayName.trim(),
         classId: editingStudent.classId,
@@ -175,7 +171,7 @@ export default function StudentData() {
   const handleDelete = async (id: string) => {
     if (!confirm('Hapus data siswa ini?')) return;
     try {
-      const { doc: firestoreDoc, deleteDoc } = await import('firebase/firestore');
+      const { deleteDoc } = await import('firebase/firestore');
       await deleteDoc(firestoreDoc(db, 'users', id));
       fetchStudents();
     } catch (error) {
@@ -183,8 +179,136 @@ export default function StudentData() {
     }
   };
 
+  const handleDownloadTemplate = () => {
+    const headers = ['Nama', 'Kelas', 'Password'];
+    const rows = [
+      ['Ahmad Faisal', 'XE1', '123456'],
+      ['Siti Aminah', 'XE2', '654321'],
+      ['Budi Santoso', 'XE1', ''],
+    ];
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'template_siswa.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const text = e.target?.result as string;
+      if (!text) return;
+
+      setUploading(true);
+      setUploadStatus(null);
+      
+      try {
+        const lines = text.split(/\r?\n/).filter(line => line.trim());
+        if (lines.length <= 1) {
+          throw new Error("File CSV kosong atau tidak valid.");
+        }
+
+        const dataRows = lines.slice(1);
+        const batch = writeBatch(db);
+        const usersRef = collection(db, 'users');
+        const classesRef = collection(db, 'classes');
+        
+        let count = 0;
+        const newClassesFound = new Set<string>();
+
+        for (const line of dataRows) {
+          // Simple CSV parser that handles commas inside quotes if needed (but here we assume simple CSV)
+          const [nama, kelas, pass] = line.split(',').map(s => s.trim());
+          
+          if (nama && kelas) {
+            const studentRef = firestoreDoc(usersRef);
+            batch.set(studentRef, {
+              displayName: nama,
+              classId: kelas,
+              role: 'siswa',
+              password: pass || '123456',
+              createdAt: new Date().toISOString()
+            });
+            
+            if (!classes.includes(kelas)) {
+              newClassesFound.add(kelas);
+            }
+            count++;
+          }
+        }
+
+        // Also add new classes if any
+        for (const cls of newClassesFound) {
+          const classRef = firestoreDoc(classesRef);
+          batch.set(classRef, { name: cls });
+        }
+
+        if (count > 0) {
+          await batch.commit();
+          setUploadStatus({ success: true, message: `Berhasil mengimpor ${count} siswa.` });
+          await fetchClasses();
+          await fetchStudents();
+        } else {
+          throw new Error("Tidak ada data siswa yang valid ditemukan.");
+        }
+      } catch (error: any) {
+        setUploadStatus({ success: false, message: error.message || "Gagal mengupload file." });
+      } finally {
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="flex flex-col space-y-6">
+      {/* Upload Notification */}
+      <AnimatePresence>
+        {uploadStatus && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`p-4 rounded-2xl border flex items-center gap-3 ${
+              uploadStatus.success 
+                ? 'bg-emerald-50 border-emerald-100 text-emerald-700' 
+                : 'bg-rose-50 border-rose-100 text-rose-700'
+            }`}
+          >
+            {uploadStatus.success ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+            <p className="text-sm font-bold">{uploadStatus.message}</p>
+            <button 
+              onClick={() => setUploadStatus(null)}
+              className="ml-auto p-1 hover:bg-black/5 rounded-full transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileUpload} 
+        accept=".csv" 
+        className="hidden" 
+      />
+
       {/* Tambah Siswa Card */}
       <Card className="rounded-3xl border-slate-100 shadow-sm overflow-hidden bg-white">
         <CardHeader className="bg-white border-b border-slate-50 flex flex-row items-center justify-between py-4 px-6">
@@ -193,11 +317,23 @@ export default function StudentData() {
             <CardTitle className="text-lg font-bold text-emerald-800">Tambah Siswa</CardTitle>
           </div>
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" className="h-8 text-xs font-medium text-slate-600 rounded-lg">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 text-xs font-medium text-slate-600 rounded-lg"
+              onClick={handleDownloadTemplate}
+            >
               <Download className="w-3 h-3 mr-1.5" /> Template
             </Button>
-            <Button variant="outline" size="sm" className="h-8 text-xs font-medium text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100 rounded-lg">
-              <Upload className="w-3 h-3 mr-1.5" /> Upload CSV
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 text-xs font-medium text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100 rounded-lg"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Upload className="w-3 h-3 mr-1.5" />}
+              {uploading ? 'Mengupload...' : 'Upload CSV'}
             </Button>
           </div>
         </CardHeader>
