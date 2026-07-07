@@ -376,7 +376,7 @@ export default function ExamPage() {
             <Button 
               variant="outline" 
               size="lg" 
-              className="h-14 px-6 rounded-2xl font-bold text-slate-600 border-slate-200"
+              className="h-14 px-6 rounded-2xl font-bold text-slate-600 border-slate-200 active:scale-95 transition-transform"
               onClick={() => setCurrentQ(prev => Math.max(0, prev - 1))}
               disabled={currentQ === 0}
             >
@@ -386,7 +386,7 @@ export default function ExamPage() {
             {currentQ === questions.length - 1 ? (
               <Button 
                 size="lg" 
-                className="h-14 rounded-2xl px-10 font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-200 text-lg" 
+                className="h-14 rounded-2xl px-10 font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-200 text-lg active:scale-95 transition-transform" 
                 onClick={handleSubmit}
                 disabled={isSubmitting}
               >
@@ -395,7 +395,7 @@ export default function ExamPage() {
             ) : (
               <Button 
                 size="lg" 
-                className="h-14 rounded-2xl px-10 font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-200 text-lg"
+                className="h-14 rounded-2xl px-10 font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-200 text-lg active:scale-95 transition-transform"
                 onClick={() => setCurrentQ(prev => Math.min(questions.length - 1, prev + 1))}
               >
                 Selanjutnya <ChevronRight className="ml-2" />
@@ -416,7 +416,7 @@ export default function ExamPage() {
                   <button
                     key={i}
                     onClick={() => setCurrentQ(i)}
-                    className={`h-12 rounded-2xl text-sm font-black transition-all ${
+                    className={`h-12 rounded-2xl text-sm font-black transition-all active:scale-95 ${
                       currentQ === i 
                         ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 scale-110 z-10' 
                         : answers[i] !== undefined
@@ -442,10 +442,25 @@ export default function ExamPage() {
                   <span>Belum Dijawab</span>
                 </div>
               </div>
+
+              {/* Tombol Kirim di Sidebar */}
+              <div className="mt-8 pt-6 border-t border-slate-100">
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-xl shadow-emerald-200 active:scale-95 transition-all text-base gap-2"
+                >
+                  {isSubmitting ? <Loader2 className="animate-spin" /> : <>Kirim Sekarang <CheckCircle size={18} /></>}
+                </Button>
+                <p className="text-[10px] text-center text-slate-400 font-bold mt-3 uppercase tracking-tighter">
+                  {Object.keys(answers).length} dari {questions.length} Soal Dijawab
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
       </div>
+      <div className="h-12" /> {/* Bottom spacing */}
     </div>
   );
 }
