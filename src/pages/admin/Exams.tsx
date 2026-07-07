@@ -8,6 +8,12 @@ import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy,
 import { db } from '../../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 
+interface Question {
+  text: string;
+  options: string[];
+  correctAnswer: number;
+}
+
 interface Exam {
   id: string;
   title: string;
@@ -18,6 +24,8 @@ interface Exam {
   participants: number;
   columnNumber: number;
   category: 'formatif' | 'sumatif';
+  targetClass?: string;
+  questions?: Question[];
 }
 
 export default function Exams() {
@@ -31,6 +39,8 @@ export default function Exams() {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [newExam, setNewExam] = useState({ 
     title: '', 
     subject: 'Informatika', 
@@ -392,7 +402,10 @@ export default function Exams() {
                         variant="outline" 
                         size="sm" 
                         className="h-10 px-4 rounded-xl border-slate-200 font-bold text-slate-600"
-                        onClick={() => alert(`Detail untuk: ${exam.title}`)}
+                        onClick={() => {
+                          setSelectedExam(exam);
+                          setShowDetailModal(true);
+                        }}
                       >
                         <Settings size={16} className="mr-2" /> Detail
                       </Button>
@@ -711,6 +724,97 @@ export default function Exams() {
                     </Button>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Detail Modal */}
+      <AnimatePresence>
+        {showDetailModal && selectedExam && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDetailModal(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-3xl bg-white rounded-[32px] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+            >
+              <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-800 tracking-tight">{selectedExam.title}</h2>
+                  <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">
+                    {selectedExam.subject} • {selectedExam.targetClass} • {selectedExam.questions?.length || 0} Soal
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowDetailModal(false)}
+                  className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 bg-white">
+                <div className="space-y-8">
+                  {selectedExam.questions && selectedExam.questions.length > 0 ? (
+                    selectedExam.questions.map((q, idx) => (
+                      <div key={idx} className="space-y-4">
+                        <div className="flex gap-4">
+                          <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 font-black text-sm">
+                            {idx + 1}
+                          </div>
+                          <p className="text-slate-800 font-bold leading-relaxed pt-1">{q.text}</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-12">
+                          {q.options.map((opt, oIdx) => (
+                            <div 
+                              key={oIdx}
+                              className={`p-4 rounded-2xl border text-sm transition-all flex items-center gap-3 ${
+                                q.correctAnswer === oIdx 
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-bold shadow-sm shadow-emerald-100' 
+                                  : 'bg-white border-slate-100 text-slate-600'
+                              }`}
+                            >
+                              <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${
+                                q.correctAnswer === oIdx 
+                                  ? 'bg-emerald-500 text-white' 
+                                  : 'bg-slate-100 text-slate-400'
+                              }`}>
+                                {String.fromCharCode(65 + oIdx)}
+                              </div>
+                              {opt}
+                              {q.correctAnswer === oIdx && <Check size={14} className="ml-auto" />}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-20 border-2 border-dashed border-slate-100 rounded-[32px]">
+                      <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <FileText size={32} className="text-slate-200" />
+                      </div>
+                      <p className="text-slate-400 font-bold">Tidak ada detail soal untuk ujian ini</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+                <Button 
+                  onClick={() => setShowDetailModal(false)}
+                  className="h-12 px-8 rounded-xl font-bold bg-slate-800 hover:bg-black text-white shadow-lg shadow-slate-100"
+                >
+                  Tutup
+                </Button>
               </div>
             </motion.div>
           </div>
