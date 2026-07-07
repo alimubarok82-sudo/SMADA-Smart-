@@ -314,11 +314,21 @@ export default function ExamPage() {
           </div>
         </div>
         
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-700 rounded-xl font-mono text-xl font-black">
             <Clock size={20} />
             {formatTime(timeLeft)}
           </div>
+          
+          <Button 
+            size="sm" 
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="h-10 px-6 rounded-xl font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100 active:scale-95 transition-all gap-2"
+          >
+            {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <>Kirim Ujian <CheckCircle size={16} /></>}
+          </Button>
+
           <button onClick={toggleFullscreen} className="text-slate-400 hover:text-slate-900 hidden md:block">
             {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
           </button>
@@ -383,24 +393,18 @@ export default function ExamPage() {
               <ChevronLeft className="mr-2" /> Sebelumnya
             </Button>
             
-            {currentQ === questions.length - 1 ? (
-              <Button 
-                size="lg" 
-                className="h-14 rounded-2xl px-10 font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-200 text-lg active:scale-95 transition-transform" 
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? <><Loader2 className="animate-spin mr-2" /> Memproses...</> : <>Kirim Ujian <CheckCircle className="ml-2" size={20} /></>}
-              </Button>
-            ) : (
-              <Button 
-                size="lg" 
-                className="h-14 rounded-2xl px-10 font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-200 text-lg active:scale-95 transition-transform"
-                onClick={() => setCurrentQ(prev => Math.min(questions.length - 1, prev + 1))}
-              >
-                Selanjutnya <ChevronRight className="ml-2" />
-              </Button>
-            )}
+            <Button 
+              size="lg" 
+              disabled={currentQ === questions.length - 1}
+              className={`h-14 rounded-2xl px-10 font-black text-white shadow-xl text-lg active:scale-95 transition-transform ${
+                currentQ === questions.length - 1 
+                ? 'bg-slate-200 text-slate-400 shadow-none cursor-not-allowed' 
+                : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'
+              }`}
+              onClick={() => setCurrentQ(prev => Math.min(questions.length - 1, prev + 1))}
+            >
+              Selanjutnya <ChevronRight className="ml-2" />
+            </Button>
           </div>
         </div>
 
@@ -441,20 +445,6 @@ export default function ExamPage() {
                   <div className="w-3 h-3 bg-white border border-slate-100 rounded"></div>
                   <span>Belum Dijawab</span>
                 </div>
-              </div>
-
-              {/* Tombol Kirim di Sidebar */}
-              <div className="mt-8 pt-6 border-t border-slate-100">
-                <Button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-xl shadow-emerald-200 active:scale-95 transition-all text-base gap-2"
-                >
-                  {isSubmitting ? <Loader2 className="animate-spin" /> : <>Kirim Sekarang <CheckCircle size={18} /></>}
-                </Button>
-                <p className="text-[10px] text-center text-slate-400 font-bold mt-3 uppercase tracking-tighter">
-                  {Object.keys(answers).length} dari {questions.length} Soal Dijawab
-                </p>
               </div>
             </CardContent>
           </Card>
