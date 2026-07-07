@@ -46,7 +46,15 @@ export default function StudentDashboard() {
       const completedExamIds = resultsSnap.docs.map(doc => doc.data().examId);
 
       // Filter exams to show only those not yet completed
-      const filteredExams = examsList.filter(exam => !completedExamIds.includes(exam.id));
+      const studentClass = (user as any).classId;
+      const filteredExams = examsList.filter(exam => {
+        const notCompleted = !completedExamIds.includes(exam.id);
+        const isForClass = (exam as any).targetClasses && (exam as any).targetClasses.length > 0
+          ? (exam as any).targetClasses.includes(studentClass)
+          : (!(exam as any).targetClass || (exam as any).targetClass === studentClass);
+        
+        return notCompleted && isForClass;
+      });
       const activeExamsCount = filteredExams.length;
 
       // 3. Calculate Average Grade

@@ -109,7 +109,7 @@ export const DashboardLayout = () => {
             <span className="text-xs font-semibold text-slate-600">Status Server</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
           </div>
-          <div className="text-[10px] text-slate-400">Aktif: TP 2023/2024 (Genap)</div>
+          <div className="text-[10px] text-slate-400">Aktif: TP 2024/2025 (Ganjil)</div>
         </div>
       </aside>
 

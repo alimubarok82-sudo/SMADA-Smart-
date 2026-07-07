@@ -73,6 +73,18 @@
         "name": { "type": "string" }
       },
       "required": ["name"]
+    },
+    "LearningObjective": {
+      "title": "LearningObjective",
+      "description": "Mapping of exam columns to learning objectives",
+      "type": "object",
+      "properties": {
+        "classId": { "type": "string" },
+        "term": { "type": "string" },
+        "formatif": { "type": "array" },
+        "sumatif": { "type": "array" }
+      },
+      "required": ["classId", "term"]
     }
   },
   "firestore": {
@@ -95,6 +107,10 @@
     "/classes/{classId}": {
       "schema": "Class",
       "description": "Collection of school classes"
+    },
+    "/learning_objectives/{docId}": {
+      "schema": "LearningObjective",
+      "description": "Collection of learning objectives for columns"
     }
   }
 }

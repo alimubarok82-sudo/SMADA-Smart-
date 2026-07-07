@@ -123,7 +123,7 @@ export default function StudentAttendance() {
               <h3 className="text-xl font-bold text-slate-800">
                 {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}
               </h3>
-              <p className="text-slate-400 text-sm font-medium">Tahun Ajaran 2023/2024</p>
+              <p className="text-slate-400 text-sm font-medium">Tahun Ajaran 2024/2025</p>
             </div>
 
             {alreadyCheckedIn ? (

@@ -18,6 +18,12 @@ service cloud.firestore {
     match /classes/{classId} {
       allow read, write: if true;
     }
+    match /learning_objectives/{docId} {
+      allow read, write: if true;
+    }
+    match /settings/{settingId} {
+      allow read, write: if true;
+    }
     match /attendance/{attId} {
       allow read, write: if request.auth != null;
     }

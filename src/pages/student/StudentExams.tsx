@@ -27,9 +27,12 @@ export default function StudentExams() {
       const allActiveExams = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
       // Filter by class client-side or use another query if targetClass is set
-      const filteredByClass = allActiveExams.filter((exam: any) => 
-        !exam.targetClass || exam.targetClass === studentClass
-      );
+      const filteredByClass = allActiveExams.filter((exam: any) => {
+        if (exam.targetClasses && exam.targetClasses.length > 0) {
+          return exam.targetClasses.includes(studentClass);
+        }
+        return !exam.targetClass || exam.targetClass === studentClass;
+      });
       
       setExams(filteredByClass);
     } catch (error) {

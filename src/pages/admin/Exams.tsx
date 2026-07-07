@@ -25,6 +25,7 @@ interface Exam {
   columnNumber: number;
   category: 'formatif' | 'sumatif';
   targetClass?: string;
+  targetClasses?: string[];
   questions?: Question[];
 }
 
@@ -47,7 +48,7 @@ export default function Exams() {
     duration: '30 Menit',
     columnNumber: 1,
     category: 'formatif' as const,
-    targetClass: '',
+    targetClasses: [] as string[],
     questions: [] as any[]
   });
   const [classes, setClasses] = useState<string[]>([]);
@@ -148,7 +149,7 @@ export default function Exams() {
       
       setClasses(combined);
       if (combined.length > 0) {
-        setNewExam(prev => ({ ...prev, targetClass: combined[0] }));
+        setNewExam(prev => ({ ...prev, targetClasses: [combined[0]] }));
       }
     } catch (error) {
       console.error("Error fetching classes:", error);
@@ -240,7 +241,7 @@ export default function Exams() {
         participants: 0,
         columnNumber: newExam.columnNumber,
         category: newExam.category,
-        targetClass: newExam.targetClass,
+        targetClasses: newExam.targetClasses,
         questions: newExam.questions,
         totalQuestions: newExam.questions.length
       };
@@ -252,7 +253,7 @@ export default function Exams() {
         duration: '30 Menit', 
         columnNumber: 1, 
         category: 'formatif',
-        targetClass: classes[0] || '',
+        targetClasses: classes[0] ? [classes[0]] : [],
         questions: []
       });
       setShowCreateModal(false);
@@ -303,7 +304,7 @@ export default function Exams() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: 'Total Ujian', value: exams.length.toString(), icon: <FileText className="text-blue-500" />, sub: 'Tahun Ajaran 2023/2024' },
+          { label: 'Total Ujian', value: exams.length.toString(), icon: <FileText className="text-blue-500" />, sub: 'Tahun Ajaran 2024/2025' },
           { label: 'Siswa Aktif', value: stats.activeStudents.toString(), icon: <Users className="text-emerald-500" />, sub: 'Terdaftar di Sistem' },
           { label: 'Rata-rata Nilai', value: stats.avgGrade.toString(), icon: <BarChart3 className="text-amber-500" />, sub: `Dari ${stats.totalAnswers} Jawaban` },
         ].map((stat, i) => (
@@ -380,9 +381,9 @@ export default function Exams() {
                         <div className="flex items-center gap-2">
                           <Users size={14} className="text-slate-400" /> {exam.participants} Peserta
                         </div>
-                        {exam.targetClass && (
+                        {(exam.targetClasses || exam.targetClass) && (
                           <div className="flex items-center gap-2">
-                            <Check size={14} className="text-indigo-400" /> Kelas: {exam.targetClass}
+                            <Check size={14} className="text-indigo-400" /> Kelas: {exam.targetClasses ? exam.targetClasses.join(', ') : exam.targetClass}
                           </div>
                         )}
                       </div>
@@ -496,19 +497,38 @@ export default function Exams() {
                       </select>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Kelas</label>
-                      <select 
-                        className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-                        value={newExam.targetClass}
-                        onChange={e => setNewExam({ ...newExam, targetClass: e.target.value })}
-                      >
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Kelas (Bisa pilih lebih dari satu)</label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
                         {classes.length === 0 ? (
-                          <option value="">Tidak ada kelas</option>
+                          <p className="text-xs text-slate-400 col-span-full">Tidak ada kelas tersedia</p>
                         ) : (
-                          classes.map(c => <option key={c} value={c}>{c}</option>)
+                          classes.map(c => (
+                            <label key={c} className="flex items-center gap-2 cursor-pointer group">
+                              <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                                newExam.targetClasses.includes(c) 
+                                  ? 'bg-indigo-600 border-indigo-600' 
+                                  : 'bg-white border-slate-300 group-hover:border-indigo-400'
+                              }`}>
+                                {newExam.targetClasses.includes(c) && <Check size={12} className="text-white" />}
+                                <input 
+                                  type="checkbox"
+                                  className="hidden"
+                                  checked={newExam.targetClasses.includes(c)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setNewExam({ ...newExam, targetClasses: [...newExam.targetClasses, c] });
+                                    } else {
+                                      setNewExam({ ...newExam, targetClasses: newExam.targetClasses.filter(tc => tc !== c) });
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <span className={`text-sm font-bold ${newExam.targetClasses.includes(c) ? 'text-indigo-600' : 'text-slate-600'}`}>{c}</span>
+                            </label>
+                          ))
                         )}
-                      </select>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -751,7 +771,7 @@ export default function Exams() {
                 <div>
                   <h2 className="text-2xl font-black text-slate-800 tracking-tight">{selectedExam.title}</h2>
                   <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">
-                    {selectedExam.subject} • {selectedExam.targetClass} • {selectedExam.questions?.length || 0} Soal
+                    {selectedExam.subject} • {selectedExam.targetClasses ? selectedExam.targetClasses.join(', ') : selectedExam.targetClass} • {selectedExam.questions?.length || 0} Soal
                   </p>
                 </div>
                 <button 
