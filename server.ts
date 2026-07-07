@@ -10,7 +10,8 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   // Gemini API Setup
   const ai = new GoogleGenAI({
@@ -26,63 +27,52 @@ async function startServer() {
     }
 
     try {
-      const promptText = `Buatkan ${count || 5} soal pilihan ganda berdasarkan materi berikut: ${material || 'Materi ada pada gambar'}. 
-        Setiap soal harus memiliki 5 pilihan jawaban (A, B, C, D, E) dan kunci jawaban yang benar.`;
-
-      let input: any = promptText;
-
-      if (image) {
-        input = [
+      const response = await ai.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: [
           {
-            type: "text",
-            text: promptText
-          },
-          {
-            type: "image",
-            data: image.split(',')[1],
-            mime_type: "image/jpeg"
+            role: "user",
+            parts: [
+              { text: `Buatkan ${count || 5} soal pilihan ganda berdasarkan materi berikut: ${material || 'Materi ada pada gambar'}. Setiap soal harus memiliki 5 pilihan jawaban (A, B, C, D, E) dan kunci jawaban yang benar.` },
+              ...(image ? [{
+                inlineData: {
+                  mimeType: "image/jpeg",
+                  data: image.split(',')[1]
+                }
+              }] : [])
+            ]
           }
-        ];
-      }
-
-      const interaction = await ai.interactions.create({
-        model: "gemini-3.5-flash",
-        input,
-        response_format: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              text: { type: Type.STRING, description: "Teks pertanyaan" },
-              options: { 
-                type: Type.ARRAY, 
-                items: { type: Type.STRING },
-                description: "Daftar 5 pilihan jawaban (A, B, C, D, E)"
+        ],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                text: { type: Type.STRING, description: "Teks pertanyaan" },
+                options: { 
+                  type: Type.ARRAY, 
+                  items: { type: Type.STRING },
+                  description: "Daftar 5 pilihan jawaban (A, B, C, D, E)"
+                },
+                correctAnswer: { 
+                  type: Type.INTEGER, 
+                  description: "Index kunci jawaban (0 untuk A, 1 untuk B, dst)" 
+                }
               },
-              correctAnswer: { 
-                type: Type.INTEGER, 
-                description: "Index kunci jawaban (0 untuk A, 1 untuk B, dst)" 
-              }
-            },
-            required: ["text", "options", "correctAnswer"]
+              required: ["text", "options", "correctAnswer"]
+            }
           }
         }
       });
 
-      const lastStep = interaction.steps.at(-1);
-      let jsonStr = '';
-      if (lastStep && lastStep.type === 'model_output') {
-        const textContent = lastStep.content?.find(c => c.type === 'text');
-        if (textContent) {
-          jsonStr = textContent.text.trim();
-        }
-      }
-      
-      if (!jsonStr) {
-        throw new Error("No response from AI");
+      const text = response.text;
+      if (!text) {
+        throw new Error("AI returned empty response");
       }
 
-      const questions = JSON.parse(jsonStr);
+      const questions = JSON.parse(text);
       res.json({ questions });
     } catch (error: any) {
       console.error("AI Generation Error:", error);

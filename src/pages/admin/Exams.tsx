@@ -78,6 +78,11 @@ export default function Exams() {
         body: JSON.stringify({ material: aiMaterial, count: aiCount, image: aiImage }),
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Server error: ${response.status}`);
+      }
+
       const data = await response.json();
       if (data.error) throw new Error(data.error);
 
