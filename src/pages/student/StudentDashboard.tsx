@@ -38,12 +38,16 @@ export default function StudentDashboard() {
     try {
       // 1. Fetch Active Exams
       const examsSnap = await getDocs(query(collection(db, 'exams'), where('status', '==', 'active')));
-      const activeExamsCount = examsSnap.size;
       const examsList = examsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       // 2. Fetch Completed Exams (Results)
       const resultsSnap = await getDocs(query(collection(db, 'exam_results'), where('studentId', '==', user.uid)));
       const completedExamsCount = resultsSnap.size;
+      const completedExamIds = resultsSnap.docs.map(doc => doc.data().examId);
+
+      // Filter exams to show only those not yet completed
+      const filteredExams = examsList.filter(exam => !completedExamIds.includes(exam.id));
+      const activeExamsCount = filteredExams.length;
 
       // 3. Calculate Average Grade
       const submissionsSnap = await getDocs(query(collection(db, 'submissions'), where('studentId', '==', user.uid), where('status', '==', 'graded')));
@@ -81,7 +85,7 @@ export default function StudentDashboard() {
         attendance: hasCheckedIn ? 100 : 0
       });
 
-      setAvailableExams(examsList);
+      setAvailableExams(filteredExams);
     } catch (error) {
       console.error("Error fetching student dashboard data:", error);
     } finally {

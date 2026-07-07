@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, Search, X, Check, Trash2 } from 'lucide-react';
+import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, Search, X, Check, Trash2, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { useNavigate } from 'react-router-dom';
 
 interface Exam {
   id: string;
@@ -20,6 +21,7 @@ interface Exam {
 }
 
 export default function Exams() {
+  const navigate = useNavigate();
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -312,6 +314,15 @@ export default function Exams() {
 
                     <div className="flex items-center gap-2">
                       <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-10 w-10 p-0 rounded-xl text-slate-300 hover:text-rose-500 hover:bg-rose-50"
+                        onClick={() => handleDeleteExam(exam.id)}
+                      >
+                        <Trash2 size={18} />
+                      </Button>
+
+                      <Button 
                         variant="outline" 
                         size="sm" 
                         className="h-10 px-4 rounded-xl border-slate-200 font-bold text-slate-600"
@@ -340,7 +351,7 @@ export default function Exams() {
 
                       {exam.status === 'completed' && (
                         <Button 
-                          onClick={() => alert('Menampilkan hasil ujian...')}
+                          onClick={() => navigate(`/dashboard/exams/results/${exam.id}`)}
                           className="h-10 px-6 rounded-xl font-bold bg-slate-800 hover:bg-black text-white shadow-lg shadow-slate-100"
                         >
                           <BarChart3 size={16} className="mr-2" /> Lihat Hasil
@@ -567,7 +578,3 @@ export default function Exams() {
     </div>
   );
 }
-
-const XCircle = ({ size, className }: { size?: number, className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-);

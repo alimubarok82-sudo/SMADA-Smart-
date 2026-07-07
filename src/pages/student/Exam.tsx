@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
-import { CheckCircle, ChevronLeft, ChevronRight, Clock, Maximize, Minimize, Loader2, BarChart3 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { CheckCircle, ChevronLeft, ChevronRight, Clock, Maximize, Minimize, Loader2, BarChart3, ShieldAlert } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../../lib/firebase';
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
@@ -28,6 +28,62 @@ export default function ExamPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [violations, setViolations] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
+  const MAX_VIOLATIONS = 3;
+
+  useEffect(() => {
+    if (loading || isSubmitted || isSubmitting) return;
+
+    const handleViolation = async () => {
+      if (showWarning || isSubmitted || isSubmitting) return;
+      
+      const newCount = violations + 1;
+      setViolations(newCount);
+      
+      // Log violation activity to Firestore
+      if (user && id) {
+        try {
+          await addDoc(collection(db, 'exam_logs'), {
+            examId: id,
+            examTitle: examMetadata?.title || 'Ujian',
+            studentId: user.uid,
+            studentName: user.displayName || 'Siswa',
+            timestamp: serverTimestamp(),
+            violationNumber: newCount,
+            type: 'screen_leave_detected',
+            classId: (user as any).classId || 'Unknown'
+          });
+        } catch (err) {
+          console.error("Error logging activity:", err);
+        }
+      }
+
+      if (newCount >= MAX_VIOLATIONS) {
+        handleSubmit(newCount);
+        return;
+      }
+      setShowWarning(true);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        handleViolation();
+      }
+    };
+
+    const handleBlur = () => {
+      handleViolation();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [loading, isSubmitted, isSubmitting, showWarning, violations, user, id, examMetadata]);
 
   useEffect(() => {
     if (id) {
@@ -37,6 +93,23 @@ export default function ExamPage() {
 
   const fetchExamData = async () => {
     try {
+      // Check if already submitted
+      if (user) {
+        const { getDocs, query, where, collection, limit } = await import('firebase/firestore');
+        const q = query(
+          collection(db, 'exam_results'), 
+          where('examId', '==', id), 
+          where('studentId', '==', user.uid),
+          limit(1)
+        );
+        const resultsSnap = await getDocs(q);
+        if (!resultsSnap.empty) {
+          alert('Anda sudah mengerjakan ujian ini.');
+          navigate('/dashboard');
+          return;
+        }
+      }
+
       const docSnap = await getDoc(doc(db, 'exams', id!));
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -92,7 +165,7 @@ export default function ExamPage() {
     setAnswers(prev => ({ ...prev, [currentQ]: val }));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (finalViolations?: number) => {
     if (!user || isSubmitting) return;
     setIsSubmitting(true);
     
@@ -112,6 +185,7 @@ export default function ExamPage() {
 
     const totalQuestions = questions.length;
     const score = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+    const vCount = finalViolations !== undefined ? finalViolations : violations;
 
     try {
       await addDoc(collection(db, 'exam_results'), {
@@ -123,6 +197,7 @@ export default function ExamPage() {
         correctCount,
         totalQuestions,
         answers,
+        violations: vCount,
         timestamp: serverTimestamp(),
         classId: (user as any).classId || 'Unknown',
         columnNumber: examMetadata?.columnNumber || 1,
@@ -179,6 +254,52 @@ export default function ExamPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
+      <AnimatePresence>
+        {showWarning && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-rose-950/80 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white rounded-[32px] w-full max-w-md overflow-hidden shadow-2xl border-4 border-rose-500"
+            >
+              <div className="p-10 flex flex-col items-center text-center">
+                <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mb-8">
+                  <ShieldAlert size={48} className="text-rose-500" />
+                </div>
+                
+                <h3 className="text-3xl font-black text-rose-600 mb-4 tracking-tight">Peringatan Keras!</h3>
+                <p className="text-slate-600 font-bold leading-relaxed mb-2">
+                  Anda terdeteksi meninggalkan layar ujian.
+                </p>
+                <p className="text-slate-400 text-xs font-medium mb-8">
+                  (Membuka tab lain/aplikasi lain/kehilangan fokus)
+                </p>
+
+                <div className="w-full bg-rose-50 rounded-2xl p-6 mb-8 border border-rose-100">
+                  <span className="text-xs font-black text-rose-800 uppercase tracking-widest block mb-2">Status Pelanggaran</span>
+                  <div className="text-5xl font-black text-rose-600">
+                    {violations} <span className="text-rose-300">/</span> {MAX_VIOLATIONS}
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={() => setShowWarning(false)}
+                  className="w-full h-14 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black text-lg shadow-lg shadow-rose-200"
+                >
+                  Saya Mengerti & Kembali
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Topbar */}
       <header className="h-16 bg-white border-b shadow-sm flex items-center justify-between px-6 sticky top-0 z-10">
         <div className="flex items-center gap-4">

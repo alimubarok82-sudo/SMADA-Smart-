@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { BookOpen, CheckCircle, FileText, Users, GraduationCap, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit, onSnapshot, deleteDoc, doc as firestoreDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { Trash2, Edit2, RotateCcw, ShieldAlert, AlertCircle } from 'lucide-react';
 
 const data = [
   { name: 'Sen', aktif: 45 },
@@ -23,10 +24,71 @@ export default function AdminDashboard() {
     totalClasses: 0,
     avgGrade: 0
   });
+  const [recentResults, setRecentResults] = useState<any[]>([]);
+  const [classes, setClasses] = useState<string[]>([]);
+  const [selectedClass, setSelectedClass] = useState('Semua Kelas');
 
   useEffect(() => {
     fetchDashboardStats();
+    
+    // Ambil daftar kelas secara menyeluruh
+    const fetchClasses = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'classes'));
+        const classNames = snap.docs.map(d => d.data().name).filter(Boolean);
+        
+        // Juga cek dari data nilai yang sudah ada
+        const resultsSnap = await getDocs(query(collection(db, 'exam_results'), limit(50)));
+        const resultClasses = resultsSnap.docs.map(d => d.data().classId).filter(Boolean);
+        
+        const combined = Array.from(new Set([...classNames, ...resultClasses]))
+          .filter(Boolean)
+          .sort();
+        
+        setClasses(combined as string[]);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchClasses();
   }, []);
+
+  // Update listener real-time berdasarkan pilihan kelas
+  useEffect(() => {
+    let q = query(
+      collection(db, 'exam_results'),
+      orderBy('timestamp', 'desc'),
+      limit(20)
+    );
+
+    if (selectedClass !== 'Semua Kelas') {
+      q = query(
+        collection(db, 'exam_results'),
+        where('classId', '==', selectedClass),
+        orderBy('timestamp', 'desc'),
+        limit(20)
+      );
+    }
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const results = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setRecentResults(results);
+    });
+
+    return () => unsubscribe();
+  }, [selectedClass]);
+
+  const handleDeleteResult = async (id: string) => {
+    if (!confirm('Hapus data nilai ini? Siswa akan bisa mengerjakan ulang ujian ini setelah datanya dihapus.')) return;
+    try {
+      await deleteDoc(firestoreDoc(db, 'exam_results', id));
+    } catch (error) {
+      console.error("Error deleting result:", error);
+    }
+  };
 
   const fetchDashboardStats = async () => {
     setLoading(true);
@@ -181,6 +243,94 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Daftar Nilai Masuk */}
+      <Card className="rounded-3xl border-slate-100 shadow-sm overflow-hidden bg-white">
+        <CardHeader className="bg-white border-b border-slate-50 flex flex-row items-center justify-between py-4 px-6">
+          <CardTitle className="text-lg font-bold text-slate-800">Daftar Nilai Masuk</CardTitle>
+          <select 
+            className="text-sm border-slate-200 rounded-lg bg-slate-50 px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500"
+            value={selectedClass}
+            onChange={(e) => setSelectedClass(e.target.value)}
+          >
+            <option>Semua Kelas</option>
+            {classes.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-50">
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Nama</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Kelas</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Ujian</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Nilai</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {recentResults.map((result) => (
+                  <tr key={result.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-bold text-slate-700">{result.studentName}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-xs font-bold text-slate-500">{result.classId}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-xs font-medium text-slate-600 line-clamp-1">{result.examTitle}</div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="text-sm font-black text-slate-800">{result.score}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        {result.score >= 75 ? (
+                          <span className="w-fit px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[10px] font-bold">Lulus</span>
+                        ) : (
+                          <span className="w-fit px-2 py-0.5 bg-rose-50 text-rose-600 rounded text-[10px] font-bold">Remedial</span>
+                        )}
+                        {result.violations > 0 && (
+                          <div className="flex items-center gap-1 px-2 py-0.5 bg-rose-50 text-rose-600 rounded border border-rose-100 text-[10px] font-bold w-fit">
+                            <ShieldAlert size={10} />
+                            {result.violations}x Curang
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition-colors" title="Reset">
+                          <RotateCcw size={16} />
+                        </button>
+                        <button className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors" title="Edit">
+                          <Edit2 size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteResult(result.id)}
+                          className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" 
+                          title="Hapus"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {recentResults.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <p className="text-sm text-slate-400 font-medium italic">Belum ada nilai yang masuk hari ini</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

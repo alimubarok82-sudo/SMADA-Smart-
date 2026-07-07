@@ -6,12 +6,14 @@ import { DashboardLayout } from './components/layout/DashboardLayout';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentResults from './pages/student/StudentResults';
 import StudentAttendance from './pages/student/StudentAttendance';
+import SettingsPage from './pages/shared/Settings';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ExamPage from './pages/student/Exam';
 
 import StudentData from './pages/admin/StudentData';
 import Attendance from './pages/admin/Attendance';
 import Exams from './pages/admin/Exams';
+import ExamResults from './pages/admin/ExamResults';
 import Grades from './pages/admin/Grades';
 import Submissions from './pages/admin/Submissions';
 
@@ -66,9 +68,10 @@ export default function App() {
             
             {/* Shared Path, Different Components */}
             <Route path="exams" element={<ExamRouter />} />
+            <Route path="exams/results/:id" element={<ExamResults />} />
             <Route path="attendance" element={<AttendanceRouter />} />
             
-            <Route path="settings" element={<div>Pengaturan</div>} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
 
           <Route path="/exam/:id" element={
