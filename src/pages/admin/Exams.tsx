@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, Search, X, Check, Trash2, XCircle } from 'lucide-react';
+import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, Search, X, Check, Trash2, XCircle, Sparkles, Loader2, Image as ImageIcon, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -44,9 +44,59 @@ export default function Exams() {
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState({
     text: '',
-    options: ['', '', '', ''],
+    options: ['', '', '', '', ''],
     correctAnswer: 0
   });
+
+  const [aiMaterial, setAiMaterial] = useState('');
+  const [aiImage, setAiImage] = useState<string | null>(null);
+  const [aiCount, setAiCount] = useState(5);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAiImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleGenerateAI = async () => {
+    if (!aiMaterial.trim() && !aiImage) {
+      alert('Silakan masukkan materi teks atau unggah gambar terlebih dahulu.');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const response = await fetch('/api/ai/generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ material: aiMaterial, count: aiCount, image: aiImage }),
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+
+      if (data.questions && Array.isArray(data.questions)) {
+        setNewExam(prev => ({
+          ...prev,
+          questions: [...prev.questions, ...data.questions]
+        }));
+        setAiMaterial('');
+        setAiImage(null);
+        alert(`Berhasil membuat ${data.questions.length} soal!`);
+      }
+    } catch (error: any) {
+      console.error("AI Gen Error:", error);
+      alert('Gagal generate soal: ' + error.message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   useEffect(() => {
     fetchExams();
@@ -142,7 +192,7 @@ export default function Exams() {
     }));
     setCurrentQuestion({
       text: '',
-      options: ['', '', '', ''],
+      options: ['', '', '', '', ''],
       correctAnswer: 0
     });
     setShowQuestionForm(false);
@@ -456,6 +506,81 @@ export default function Exams() {
                           <option key={i+1} value={i+1}>Kolom {i+1}</option>
                         ))}
                       </select>
+                    </div>
+                  </div>
+
+                  {/* AI Generator Section */}
+                  <div className="p-6 bg-slate-50 rounded-[24px] border border-slate-200 space-y-4">
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="flex-1 space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Materi (Teks/Gambar)</label>
+                        <textarea 
+                          className="w-full p-4 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white min-h-[120px]"
+                          placeholder="Paste materi atau ketik topik soal di sini..."
+                          value={aiMaterial}
+                          onChange={e => setAiMaterial(e.target.value)}
+                        />
+                      </div>
+                      <div className="w-full md:w-48 space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Unggah Foto Materi</label>
+                        <div 
+                          className="relative h-[120px] bg-white border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-all overflow-hidden"
+                          onClick={() => document.getElementById('ai-image-upload')?.click()}
+                        >
+                          {aiImage ? (
+                            <div className="relative w-full h-full">
+                              <img src={aiImage} alt="Preview" className="w-full h-full object-cover" />
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); setAiImage(null); }}
+                                className="absolute top-1 right-1 p-1 bg-white/80 rounded-full text-rose-500 hover:text-rose-700"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <ImageIcon className="text-slate-300 mb-2" size={24} />
+                              <span className="text-[10px] font-bold text-slate-400">Pilih Gambar</span>
+                            </>
+                          )}
+                        </div>
+                        <input 
+                          id="ai-image-upload" 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={handleImageUpload}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="w-20">
+                        <Input 
+                          type="number"
+                          value={aiCount}
+                          onChange={e => setAiCount(parseInt(e.target.value) || 1)}
+                          className="h-12 rounded-xl text-center font-bold border-slate-200 bg-white"
+                          min={1}
+                          max={20}
+                        />
+                      </div>
+                      <Button 
+                        onClick={handleGenerateAI}
+                        disabled={isGenerating}
+                        className="flex-1 h-12 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100 flex items-center justify-center gap-2"
+                      >
+                        {isGenerating ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            Sedang Membuat...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={18} />
+                            Generate {aiCount} Soal AI
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
 
