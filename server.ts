@@ -13,12 +13,22 @@ async function startServer() {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
+  // Request logger
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+  });
+
   // Gemini API Setup
   const ai = new GoogleGenAI({
     apiKey: process.env.GEMINI_API_KEY || ''
   });
 
   // API Routes
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", time: new Date().toISOString() });
+  });
+
   app.post("/api/ai/generate-questions", async (req, res) => {
     const { material, count, image } = req.body;
 

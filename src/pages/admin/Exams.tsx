@@ -79,6 +79,9 @@ export default function Exams() {
       });
 
       if (!response.ok) {
+        if (response.status === 405) {
+          throw new Error("Server belum siap atau metode tidak diizinkan. Pastikan Anda menggunakan URL Development dari AI Studio, bukan Vercel.");
+        }
         const errorText = await response.text();
         throw new Error(errorText || `Server error: ${response.status}`);
       }
