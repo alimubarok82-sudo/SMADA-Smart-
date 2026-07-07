@@ -72,6 +72,14 @@ export default function Exams() {
 
     setIsGenerating(true);
     try {
+      // Periksa apakah server backend aktif
+      try {
+        const healthCheck = await fetch('/api/health');
+        if (!healthCheck.ok) throw new Error();
+      } catch (e) {
+        throw new Error('Server backend tidak merespons. Pastikan Anda menjalankan aplikasi di AI Studio Development Server. Jika aplikasi sudah di-export ke Vercel/GitHub, fitur AI ini memerlukan setup backend tambahan.');
+      }
+
       const response = await fetch('/api/ai/generate-questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -80,7 +88,7 @@ export default function Exams() {
 
       if (!response.ok) {
         if (response.status === 405) {
-          throw new Error("Server belum siap atau metode tidak diizinkan. Pastikan Anda menggunakan URL Development dari AI Studio, bukan Vercel.");
+          throw new Error("Metode tidak diizinkan (405). Ini biasanya terjadi jika aplikasi berjalan di Vercel tanpa backend Express yang aktif.");
         }
         const errorText = await response.text();
         throw new Error(errorText || `Server error: ${response.status}`);
