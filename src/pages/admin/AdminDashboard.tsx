@@ -22,7 +22,8 @@ export default function AdminDashboard() {
     totalStudents: 0,
     activeExams: 0,
     totalClasses: 0,
-    avgGrade: 0
+    avgGrade: 0,
+    attendanceToday: 0
   });
   const [recentResults, setRecentResults] = useState<any[]>([]);
   const [classes, setClasses] = useState<string[]>([]);
@@ -132,7 +133,12 @@ export default function AdminDashboard() {
       });
       const totalClasses = classNames.size;
 
-      // 4. Avg Grade
+      // 4. Attendance Today
+      const today = new Date().toLocaleDateString('en-CA');
+      const attSnap = await getDocs(query(collection(db, 'attendance'), where('date', '==', today), where('status', '==', 'hadir')));
+      const attendanceToday = attSnap.size;
+
+      // 5. Avg Grade
       const resultsSnap = await getDocs(collection(db, 'exam_results'));
       const submissionsSnap = await getDocs(query(collection(db, 'submissions'), where('status', '==', 'graded')));
       
@@ -155,7 +161,8 @@ export default function AdminDashboard() {
         totalStudents,
         activeExams,
         totalClasses,
-        avgGrade
+        avgGrade,
+        attendanceToday
       });
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
@@ -165,9 +172,9 @@ export default function AdminDashboard() {
   };
 
   const stats = [
-    { title: 'Total Siswa', value: dashboardStats.totalStudents, icon: <Users className="w-6 h-6" />, containerClass: 'bg-indigo-50 text-indigo-600' },
+    { title: 'Siswa Hadir', value: dashboardStats.attendanceToday, icon: <CheckCircle className="w-6 h-6" />, containerClass: 'bg-emerald-50 text-emerald-600' },
     { title: 'Ujian Aktif', value: dashboardStats.activeExams, icon: <FileText className="w-6 h-6" />, containerClass: 'bg-purple-50 text-purple-600' },
-    { title: 'Total Kelas', value: dashboardStats.totalClasses, icon: <GraduationCap className="w-6 h-6" />, containerClass: 'bg-emerald-50 text-emerald-600' },
+    { title: 'Total Siswa', value: dashboardStats.totalStudents, icon: <Users className="w-6 h-6" />, containerClass: 'bg-indigo-50 text-indigo-600' },
     { title: 'Rata-rata Nilai', value: dashboardStats.avgGrade, icon: <BookOpen className="w-6 h-6" />, containerClass: 'bg-amber-50 text-amber-600' },
   ];
 

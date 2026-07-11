@@ -15,7 +15,7 @@ export default function StudentAttendance() {
   const [checkInData, setCheckInData] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
 
   useEffect(() => {
     if (user) {

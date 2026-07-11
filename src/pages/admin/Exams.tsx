@@ -239,7 +239,7 @@ export default function Exams() {
       const examData = {
         title: newExam.title,
         subject: newExam.subject,
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toLocaleDateString('en-CA'),
         duration: newExam.duration,
         status: 'upcoming',
         participants: 0,

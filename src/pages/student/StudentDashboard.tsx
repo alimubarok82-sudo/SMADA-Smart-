@@ -76,7 +76,7 @@ export default function StudentDashboard() {
       const avgGrade = totalCount > 0 ? (totalPoints / totalCount).toFixed(1) : '0';
 
       // 4. Fetch Attendance Status for Today
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('en-CA');
       const attQ = query(
         collection(db, 'attendance'),
         where('studentId', '==', user.uid),

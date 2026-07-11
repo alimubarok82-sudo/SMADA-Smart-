@@ -14,7 +14,7 @@ interface Student {
 
 export default function Attendance() {
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
   const [classes, setClasses] = useState<string[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -271,7 +271,7 @@ export default function Attendance() {
           disabled={saving || loading}
           className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 rounded-xl h-12 font-bold shadow-lg shadow-indigo-200 transition-all"
         >
-          {saving ? 'Menyimpan...' : `Simpan Kehadiran ${selectedDate === new Date().toISOString().split('T')[0] ? 'Hari Ini' : selectedDate}`}
+          {saving ? 'Menyimpan...' : `Simpan Kehadiran ${selectedDate === new Date().toLocaleDateString('en-CA') ? 'Hari Ini' : selectedDate}`}
         </Button>
       </div>
     </div>
