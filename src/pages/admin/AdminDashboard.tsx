@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { BookOpen, CheckCircle, FileText, Users, GraduationCap, Loader2 } from 'lucide-react';
+import { BookOpen, CheckCircle, FileText, Users, GraduationCap, Loader2, Search } from 'lucide-react';
 import { motion } from 'motion/react';
 import { collection, getDocs, query, where, orderBy, limit, onSnapshot, deleteDoc, doc as firestoreDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -26,7 +26,10 @@ export default function AdminDashboard() {
   });
   const [recentResults, setRecentResults] = useState<any[]>([]);
   const [classes, setClasses] = useState<string[]>([]);
+  const [exams, setExams] = useState<string[]>([]);
   const [selectedClass, setSelectedClass] = useState('Semua Kelas');
+  const [selectedExam, setSelectedExam] = useState('Semua Ujian');
+  const [nameSearch, setNameSearch] = useState('');
 
   useEffect(() => {
     fetchDashboardStats();
@@ -38,14 +41,16 @@ export default function AdminDashboard() {
         const classNames = snap.docs.map(d => d.data().name).filter(Boolean);
         
         // Juga cek dari data nilai yang sudah ada
-        const resultsSnap = await getDocs(query(collection(db, 'exam_results'), limit(50)));
+        const resultsSnap = await getDocs(query(collection(db, 'exam_results'), limit(100)));
         const resultClasses = resultsSnap.docs.map(d => d.data().classId).filter(Boolean);
+        const resultExams = resultsSnap.docs.map(d => d.data().examTitle).filter(Boolean);
         
-        const combined = Array.from(new Set([...classNames, ...resultClasses]))
+        const combinedClasses = Array.from(new Set([...classNames, ...resultClasses]))
           .filter(Boolean)
           .sort();
         
-        setClasses(combined as string[]);
+        setClasses(combinedClasses as string[]);
+        setExams(Array.from(new Set(resultExams as string[])).sort());
       } catch (err) {
         console.error(err);
       }
@@ -53,20 +58,28 @@ export default function AdminDashboard() {
     fetchClasses();
   }, []);
 
-  // Update listener real-time berdasarkan pilihan kelas
+  // Update listener real-time berdasarkan pilihan kelas dan ujian
   useEffect(() => {
     let q = query(
       collection(db, 'exam_results'),
       orderBy('timestamp', 'desc'),
-      limit(20)
+      limit(100)
     );
 
+    const conditions = [];
     if (selectedClass !== 'Semua Kelas') {
+      conditions.push(where('classId', '==', selectedClass));
+    }
+    if (selectedExam !== 'Semua Ujian') {
+      conditions.push(where('examTitle', '==', selectedExam));
+    }
+
+    if (conditions.length > 0) {
       q = query(
         collection(db, 'exam_results'),
-        where('classId', '==', selectedClass),
+        ...conditions,
         orderBy('timestamp', 'desc'),
-        limit(20)
+        limit(100)
       );
     }
 
@@ -79,7 +92,11 @@ export default function AdminDashboard() {
     });
 
     return () => unsubscribe();
-  }, [selectedClass]);
+  }, [selectedClass, selectedExam]);
+
+  const filteredResults = recentResults.filter(r => 
+    r.studentName?.toLowerCase().includes(nameSearch.toLowerCase())
+  );
 
   const handleDeleteResult = async (id: string) => {
     if (!confirm('Hapus data nilai ini? Siswa akan bisa mengerjakan ulang ujian ini setelah datanya dihapus.')) return;
@@ -246,16 +263,36 @@ export default function AdminDashboard() {
 
       {/* Daftar Nilai Masuk */}
       <Card className="rounded-3xl border-slate-100 shadow-sm overflow-hidden bg-white">
-        <CardHeader className="bg-white border-b border-slate-50 flex flex-row items-center justify-between py-4 px-6">
+        <CardHeader className="bg-white border-b border-slate-50 flex flex-col md:flex-row items-start md:items-center justify-between py-4 px-6 gap-4">
           <CardTitle className="text-lg font-bold text-slate-800">Daftar Nilai Masuk</CardTitle>
-          <select 
-            className="text-sm border-slate-200 rounded-lg bg-slate-50 px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500"
-            value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
-          >
-            <option>Semua Kelas</option>
-            {classes.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <div className="relative flex-1 md:w-48">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+              <input 
+                type="text" 
+                placeholder="Cari nama..." 
+                className="w-full pl-9 h-9 text-[10px] font-bold border-slate-200 rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500 uppercase tracking-widest text-slate-600"
+                value={nameSearch}
+                onChange={(e) => setNameSearch(e.target.value)}
+              />
+            </div>
+            <select 
+              className="text-[10px] font-bold border-slate-200 rounded-lg bg-slate-50 px-3 py-1.5 h-9 outline-none focus:ring-2 focus:ring-indigo-500 uppercase tracking-widest text-slate-500"
+              value={selectedExam}
+              onChange={(e) => setSelectedExam(e.target.value)}
+            >
+              <option>Semua Ujian</option>
+              {exams.map(e => <option key={e} value={e}>{e}</option>)}
+            </select>
+            <select 
+              className="text-[10px] font-bold border-slate-200 rounded-lg bg-slate-50 px-3 py-1.5 h-9 outline-none focus:ring-2 focus:ring-indigo-500 uppercase tracking-widest text-slate-500"
+              value={selectedClass}
+              onChange={(e) => setSelectedClass(e.target.value)}
+            >
+              <option>Semua Kelas</option>
+              {classes.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -271,7 +308,7 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {recentResults.map((result) => (
+                {filteredResults.map((result) => (
                   <tr key={result.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="text-sm font-bold text-slate-700">{result.studentName}</div>

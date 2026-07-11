@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Calendar as CalendarIcon, CheckCircle2, XCircle, Clock, Search, Filter, Download } from 'lucide-react';
 import { motion } from 'motion/react';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 interface Student {
@@ -14,9 +14,11 @@ interface Student {
 
 export default function Attendance() {
   const [selectedClass, setSelectedClass] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [classes, setClasses] = useState<string[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [attendance, setAttendance] = useState<Record<string, 'hadir' | 'izin' | 'sakit' | 'alpa'>>({});
 
   useEffect(() => {
@@ -64,20 +66,19 @@ export default function Attendance() {
         const sortedStudents = studentsData.sort((a, b) => a.displayName.localeCompare(b.displayName));
         setStudents(sortedStudents);
         
-        // 2. Fetch Today's Attendance
-        const today = new Date().toISOString().split('T')[0];
+        // 2. Fetch Attendance for Selected Date
         const attQ = query(
           collection(db, 'attendance'),
           where('classId', '==', selectedClass),
-          where('date', '==', today)
+          where('date', '==', selectedDate)
         );
         const attSnap = await getDocs(attQ);
         
         const currentAttendance: Record<string, 'hadir' | 'izin' | 'sakit' | 'alpa'> = {};
-        // Initialize all as alpa (default if no check-in)
+        // Initialize all as alpa (default if no record)
         sortedStudents.forEach(s => currentAttendance[s.id] = 'alpa');
         
-        // Fill with actual check-ins
+        // Fill with actual records
         attSnap.forEach(doc => {
           const data = doc.data();
           if (currentAttendance[data.studentId]) {
@@ -93,7 +94,56 @@ export default function Attendance() {
       }
     };
     fetchStudentsAndAttendance();
-  }, [selectedClass]);
+  }, [selectedClass, selectedDate]);
+
+  const handleSaveAttendance = async () => {
+    if (!selectedClass || students.length === 0) return;
+    setSaving(true);
+    try {
+      const batch = writeBatch(db);
+      
+      // Get existing records for this class and date to update/overwrite
+      const attQ = query(
+        collection(db, 'attendance'),
+        where('classId', '==', selectedClass),
+        where('date', '==', selectedDate)
+      );
+      const existingSnap = await getDocs(attQ);
+      const existingMap: Record<string, string> = {};
+      existingSnap.forEach(doc => {
+        existingMap[doc.data().studentId] = doc.id;
+      });
+
+      for (const student of students) {
+        const status = attendance[student.id];
+        const existingId = existingMap[student.id];
+        
+        if (existingId) {
+          batch.update(doc(db, 'attendance', existingId), {
+            status,
+            updatedAt: serverTimestamp()
+          });
+        } else {
+          batch.set(doc(collection(db, 'attendance')), {
+            studentId: student.id,
+            studentName: student.displayName,
+            classId: selectedClass,
+            date: selectedDate,
+            status,
+            createdAt: serverTimestamp()
+          });
+        }
+      }
+
+      await batch.commit();
+      alert(`Berhasil menyimpan absensi untuk tanggal ${selectedDate}`);
+    } catch (error) {
+      console.error("Error saving attendance:", error);
+      alert("Gagal menyimpan absensi.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const stats = {
     hadir: Object.values(attendance).filter(v => v === 'hadir').length,
@@ -112,7 +162,12 @@ export default function Attendance() {
         <div className="flex items-center space-x-3">
           <div className="bg-white border border-slate-200 rounded-xl px-4 py-2 flex items-center space-x-2 shadow-sm text-sm text-slate-600">
             <CalendarIcon className="w-4 h-4 text-indigo-500" />
-            <span className="font-medium">{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            <input 
+              type="date" 
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-transparent border-none focus:outline-none font-medium cursor-pointer"
+            />
           </div>
           <select 
             className="h-10 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[100px] shadow-sm"
@@ -211,8 +266,12 @@ export default function Attendance() {
       </Card>
       
       <div className="flex justify-end">
-        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 rounded-xl h-12 font-bold shadow-lg shadow-indigo-200 transition-all">
-          Simpan Kehadiran Hari Ini
+        <Button 
+          onClick={handleSaveAttendance}
+          disabled={saving || loading}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 rounded-xl h-12 font-bold shadow-lg shadow-indigo-200 transition-all"
+        >
+          {saving ? 'Menyimpan...' : `Simpan Kehadiran ${selectedDate === new Date().toISOString().split('T')[0] ? 'Hari Ini' : selectedDate}`}
         </Button>
       </div>
     </div>

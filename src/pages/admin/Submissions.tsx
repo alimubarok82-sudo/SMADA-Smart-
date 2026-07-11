@@ -24,6 +24,7 @@ export default function Submissions() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState('Semua Kelas');
+  const [selectedTitle, setSelectedTitle] = useState('Semua Tugas');
   const [grades, setGrades] = useState<Record<string, number>>({});
   const [columnNumbers, setColumnNumbers] = useState<Record<string, number>>({});
 
@@ -105,10 +106,12 @@ export default function Submissions() {
     const matchesSearch = s.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (s.title || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesClass = selectedClass === 'Semua Kelas' || s.classId === selectedClass;
-    return matchesSearch && matchesClass;
+    const matchesTitle = selectedTitle === 'Semua Tugas' || s.title === selectedTitle;
+    return matchesSearch && matchesClass && matchesTitle;
   });
 
   const uniqueClasses = Array.from(new Set(submissions.map(s => s.classId))).sort();
+  const uniqueTitles = Array.from(new Set(submissions.map(s => s.title).filter(Boolean))).sort();
 
   return (
     <div className="space-y-6">
@@ -120,14 +123,24 @@ export default function Submissions() {
             <p className="text-slate-500 text-xs">Daftar unggahan tugas dan karya siswa untuk dinilai.</p>
           </div>
         </div>
-        <select 
-          className="h-10 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 min-w-[150px] shadow-sm"
-          value={selectedClass}
-          onChange={(e) => setSelectedClass(e.target.value)}
-        >
-          <option>Semua Kelas</option>
-          {uniqueClasses.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+        <div className="flex items-center gap-3">
+          <select 
+            className="h-10 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 min-w-[150px] shadow-sm"
+            value={selectedTitle}
+            onChange={(e) => setSelectedTitle(e.target.value)}
+          >
+            <option>Semua Tugas</option>
+            {uniqueTitles.map(t => <option key={t as string} value={t as string}>{t}</option>)}
+          </select>
+          <select 
+            className="h-10 px-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 min-w-[150px] shadow-sm"
+            value={selectedClass}
+            onChange={(e) => setSelectedClass(e.target.value)}
+          >
+            <option>Semua Kelas</option>
+            {uniqueClasses.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
       </div>
 
       <div className="space-y-4">

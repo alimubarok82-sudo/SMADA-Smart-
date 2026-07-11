@@ -481,28 +481,28 @@ export default function Grades() {
               <p className="font-bold uppercase tracking-widest text-xs">Memuat Data Leger...</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[70vh] custom-scrollbar">
               <table className="w-full border-collapse border border-slate-200 text-center font-sans">
-                <thead className="text-[10px] font-black uppercase tracking-tighter">
+                <thead className="text-[10px] font-black uppercase tracking-tighter sticky top-0 z-20 shadow-sm">
                   <tr className="bg-slate-100/80">
-                    <th rowSpan={2} className="border border-slate-200 px-4 py-2 w-48 text-left bg-slate-100 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">NAMA</th>
-                    <th rowSpan={2} className="border border-slate-200 px-2 py-2 w-8 bg-slate-100">LP</th>
-                    <th colSpan={15} className="border border-slate-200 px-2 py-2 bg-slate-100/50">Asesmen Formatif (Ujian)</th>
-                    <th rowSpan={2} className="border border-slate-200 px-2 py-2 w-10 bg-emerald-500 text-white">NAF</th>
-                    <th colSpan={9} className="border border-slate-200 px-2 py-2 bg-slate-100/50">Sumatif Lingkup Materi (Portofolio)</th>
-                    <th rowSpan={2} className="border border-slate-200 px-2 py-2 w-10 bg-emerald-500 text-white">NAS</th>
-                    <th colSpan={2} className="border border-slate-200 px-2 py-2 bg-slate-100/50">SAS</th>
-                    <th rowSpan={2} className="border border-slate-200 px-2 py-2 w-10 bg-indigo-500 text-white">NS</th>
-                    <th rowSpan={2} className="border border-slate-200 px-2 py-2 w-12 bg-amber-400 text-white">NR</th>
-                    <th rowSpan={2} className="border border-slate-200 px-2 py-2 w-8 bg-slate-100">No</th>
-                    <th rowSpan={2} className="border border-slate-200 px-4 py-2 min-w-[300px] text-left bg-emerald-50 text-emerald-800">TUJUAN PEMBELAJARAN</th>
+                    <th rowSpan={2} className="border border-slate-200 px-4 py-2 w-48 text-left bg-slate-100 sticky left-0 z-30 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">NAMA</th>
+                    <th rowSpan={2} className="border border-slate-200 px-2 py-2 w-8 bg-slate-100 sticky top-0">LP</th>
+                    <th colSpan={15} className="border border-slate-200 px-2 py-2 bg-slate-100/50 sticky top-0">Asesmen Formatif (Ujian)</th>
+                    <th rowSpan={2} className="border border-slate-200 px-2 py-2 w-10 bg-emerald-500 text-white sticky top-0">NAF</th>
+                    <th colSpan={9} className="border border-slate-200 px-2 py-2 bg-slate-100/50 sticky top-0">Sumatif Lingkup Materi (Portofolio)</th>
+                    <th rowSpan={2} className="border border-slate-200 px-2 py-2 w-10 bg-emerald-500 text-white sticky top-0">NAS</th>
+                    <th colSpan={2} className="border border-slate-200 px-2 py-2 bg-slate-100/50 sticky top-0">SAS</th>
+                    <th rowSpan={2} className="border border-slate-200 px-2 py-2 w-10 bg-indigo-500 text-white sticky top-0">NS</th>
+                    <th rowSpan={2} className="border border-slate-200 px-2 py-2 w-12 bg-amber-400 text-white sticky top-0">NR</th>
+                    <th rowSpan={2} className="border border-slate-200 px-2 py-2 w-8 bg-slate-100 sticky top-0">No</th>
+                    <th rowSpan={2} className="border border-slate-200 px-4 py-2 min-w-[300px] text-left bg-emerald-50 text-emerald-800 sticky top-0">TUJUAN PEMBELAJARAN</th>
                   </tr>
                   <tr className="bg-slate-50">
                     {[...Array(15)].map((_, i) => (
                       <th 
                         key={`f-${i}`} 
                         title={tpFormatif[i]}
-                        className="border border-slate-200 px-1 py-2 w-6 bg-rose-500 text-white cursor-help"
+                        className="border border-slate-200 px-1 py-2 w-6 bg-rose-500 text-white cursor-help sticky top-[34px]"
                       >
                         {i + 1}
                       </th>
@@ -511,13 +511,13 @@ export default function Grades() {
                       <th 
                         key={`s-${i}`} 
                         title={tpSumatif[i]}
-                        className="border border-slate-200 px-1 py-2 w-6 bg-orange-400 text-white cursor-help"
+                        className="border border-slate-200 px-1 py-2 w-6 bg-orange-400 text-white cursor-help sticky top-[34px]"
                       >
                         {i + 1}
                       </th>
                     ))}
-                    <th className="border border-slate-200 px-1 py-2 w-8 bg-white text-slate-500">Non</th>
-                    <th className="border border-slate-200 px-1 py-2 w-8 bg-rose-500 text-white">Tes</th>
+                    <th className="border border-slate-200 px-1 py-2 w-8 bg-white text-slate-500 sticky top-[34px]">Non</th>
+                    <th className="border border-slate-200 px-1 py-2 w-8 bg-rose-500 text-white sticky top-[34px]">Tes</th>
                   </tr>
                 </thead>
                 <tbody className="text-[11px] font-bold">

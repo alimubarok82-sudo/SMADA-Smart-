@@ -13,12 +13,14 @@ export default function StudentAttendance() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [alreadyCheckedIn, setAlreadyCheckedIn] = useState(false);
   const [checkInData, setCheckInData] = useState<any>(null);
+  const [history, setHistory] = useState<any[]>([]);
 
   const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     if (user) {
       checkTodayStatus();
+      fetchHistory();
     }
   }, [user]);
 
@@ -44,6 +46,26 @@ export default function StudentAttendance() {
     }
   };
 
+  const fetchHistory = async () => {
+    if (!user) return;
+    try {
+      const q = query(
+        collection(db, 'attendance'),
+        where('studentId', '==', user.uid),
+        orderBy('date', 'desc'),
+        limit(10)
+      );
+      const snap = await getDocs(q);
+      const historyData = snap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setHistory(historyData);
+    } catch (error) {
+      console.error("Error fetching attendance history:", error);
+    }
+  };
+
   const handleCheckIn = async () => {
     if (!user || alreadyCheckedIn) return;
     setIsSubmitting(true);
@@ -61,6 +83,7 @@ export default function StudentAttendance() {
         timestamp: new Date(),
         status: 'hadir'
       });
+      fetchHistory();
     } catch (error) {
       console.error("Error checking in:", error);
     } finally {
@@ -140,6 +163,47 @@ export default function StudentAttendance() {
           <strong>Penting:</strong> Check-in hanya dapat dilakukan satu kali setiap hari. Jika Anda berhalangan hadir (Sakit/Izin), silahkan hubungi wali kelas.
         </p>
       </div>
+
+      {history.length > 0 && (
+        <Card className="rounded-3xl border-slate-100 shadow-sm bg-white overflow-hidden">
+          <div className="p-6 border-b border-slate-50">
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Riwayat Presensi</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <th className="px-6 py-3">Tanggal</th>
+                  <th className="px-6 py-3">Waktu</th>
+                  <th className="px-6 py-3 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {history.map((item) => (
+                  <tr key={item.id} className="text-sm">
+                    <td className="px-6 py-4 font-bold text-slate-700">
+                      {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td className="px-6 py-4 text-slate-500 font-medium">
+                      {item.timestamp?.toDate ? item.timestamp.toDate().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'} WIB
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${
+                        item.status === 'hadir' ? 'bg-emerald-50 text-emerald-600' :
+                        item.status === 'izin' ? 'bg-blue-50 text-blue-600' :
+                        item.status === 'sakit' ? 'bg-amber-50 text-amber-600' :
+                        'bg-rose-50 text-rose-600'
+                      }`}>
+                        {item.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
