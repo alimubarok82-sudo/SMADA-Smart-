@@ -195,12 +195,12 @@ export default function Login() {
           <CardContent className="p-8 md:p-10">
             {mode === 'siswa' ? (
               <>
-                <div className="text-center mb-8">
-                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-indigo-50 text-indigo-500 mb-6">
-                    <UserIcon size={40} />
+                <div className="text-center mb-10">
+                  <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-indigo-50 text-indigo-600 mb-8">
+                    <UserIcon size={44} strokeWidth={2.5} />
                   </div>
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-800">Informatika SMADA</h1>
-                  <p className="text-slate-500 mt-2">Masuk untuk memulai materi & ujian.</p>
+                  <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Selamat Datang!</h1>
+                  <p className="text-slate-500 mt-3 text-lg">Masuk untuk memulai ujian.</p>
                 </div>
 
                 <form onSubmit={handleStudentLogin} className="space-y-5">
@@ -269,12 +269,12 @@ export default function Login() {
               </>
             ) : (
               <>
-                <div className="text-center mb-8">
-                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 text-slate-500 mb-6">
-                    <Lock size={40} />
+                <div className="text-center mb-10">
+                  <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-slate-100 text-slate-600 mb-8">
+                    <Lock size={44} strokeWidth={2.5} />
                   </div>
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-800">Portal Guru Informatika</h1>
-                  <p className="text-slate-500 mt-2">Masuk untuk mengelola pembelajaran.</p>
+                  <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Portal Guru</h1>
+                  <p className="text-slate-500 mt-3 text-lg">Masuk untuk mengelola pembelajaran.</p>
                 </div>
 
                 <form onSubmit={handleGuruLogin} className="space-y-5">
