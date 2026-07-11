@@ -111,6 +111,14 @@ export default function StudentData() {
 
   const handleSimpan = async () => {
     if (!nama.trim()) return;
+
+    // Check for duplicates in current class
+    const existingInClass = studentsByClass[selectedClass] || [];
+    if (existingInClass.some(s => s.displayName.toLowerCase() === nama.trim().toLowerCase())) {
+      alert(`Siswa dengan nama "${nama.trim()}" sudah ada di kelas ${selectedClass}`);
+      return;
+    }
+
     setSaving(true);
     try {
       await addDoc(collection(db, 'users'), {
@@ -227,26 +235,45 @@ export default function StudentData() {
         const classesRef = collection(db, 'classes');
         
         let count = 0;
+        let skipped = 0;
         const newClassesFound = new Set<string>();
+
+        // Create a lookup for current students to check for duplicates
+        const existingLookup: Record<string, Set<string>> = {};
+        (Object.entries(studentsByClass) as [string, Student[]][]).forEach(([cId, students]) => {
+          existingLookup[cId] = new Set(students.map(s => s.displayName.toLowerCase()));
+        });
 
         for (const line of dataRows) {
           // Simple CSV parser that handles commas inside quotes if needed (but here we assume simple CSV)
           const [nama, kelas, pass] = line.split(',').map(s => s.trim());
           
           if (nama && kelas) {
-            const studentRef = firestoreDoc(usersRef);
-            batch.set(studentRef, {
-              displayName: nama,
-              classId: kelas,
-              role: 'siswa',
-              password: pass || '123456',
-              createdAt: new Date().toISOString()
-            });
-            
-            if (!classes.includes(kelas)) {
-              newClassesFound.add(kelas);
+            // Check if already exists in this class
+            const isDuplicate = existingLookup[kelas]?.has(nama.toLowerCase());
+
+            if (!isDuplicate) {
+              const studentRef = firestoreDoc(usersRef);
+              batch.set(studentRef, {
+                displayName: nama,
+                classId: kelas,
+                role: 'siswa',
+                password: pass || '123456',
+                createdAt: new Date().toISOString()
+              });
+              
+              if (!classes.includes(kelas)) {
+                newClassesFound.add(kelas);
+              }
+
+              // Update lookup to handle duplicates within the CSV itself
+              if (!existingLookup[kelas]) existingLookup[kelas] = new Set();
+              existingLookup[kelas].add(nama.toLowerCase());
+
+              count++;
+            } else {
+              skipped++;
             }
-            count++;
           }
         }
 
@@ -258,9 +285,14 @@ export default function StudentData() {
 
         if (count > 0) {
           await batch.commit();
-          setUploadStatus({ success: true, message: `Berhasil mengimpor ${count} siswa.` });
+          const message = skipped > 0 
+            ? `Berhasil mengimpor ${count} siswa. (${skipped} siswa dilewati karena sudah ada).`
+            : `Berhasil mengimpor ${count} siswa.`;
+          setUploadStatus({ success: true, message });
           await fetchClasses();
           await fetchStudents();
+        } else if (skipped > 0) {
+          setUploadStatus({ success: true, message: `Tidak ada data baru. ${skipped} siswa sudah ada dalam database.` });
         } else {
           throw new Error("Tidak ada data siswa yang valid ditemukan.");
         }
