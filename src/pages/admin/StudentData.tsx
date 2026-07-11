@@ -177,18 +177,38 @@ export default function StudentData() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Hapus data siswa ini?')) return;
+    if (!confirm('Hapus data siswa ini? Semua nilai, presensi, dan tugas siswa ini juga akan terhapus.')) return;
+    setLoading(true);
     try {
       const { deleteDoc } = await import('firebase/firestore');
-      await deleteDoc(firestoreDoc(db, 'users', id));
+      const batch = writeBatch(db);
+      
+      // 1. Delete student record
+      batch.delete(firestoreDoc(db, 'users', id));
+      
+      // 2. Cleanup related data
+      const collections = ['exam_results', 'attendance', 'submissions'];
+      for (const col of collections) {
+        const q = query(collection(db, col), where('studentId', '==', id));
+        const snap = await getDocs(q);
+        snap.forEach(d => {
+          batch.delete(firestoreDoc(db, col, d.id));
+        });
+      }
+      
+      await batch.commit();
       fetchStudents();
+      setUploadStatus({ success: true, message: "Data siswa dan seluruh riwayatnya berhasil dihapus." });
     } catch (error) {
       console.error("Error deleting student:", error);
+      alert("Gagal menghapus data siswa.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDeleteClass = async (className: string) => {
-    if (!confirm(`Hapus seluruh kelas ${className} dan SEMUA siswanya? Tindakan ini tidak dapat dibatalkan.`)) return;
+    if (!confirm(`Hapus seluruh kelas ${className} dan SEMUA siswanya? Semua riwayat nilai, presensi, dan tugas di kelas ini juga akan ikut terhapus.`)) return;
     
     setLoading(true);
     try {
@@ -196,6 +216,8 @@ export default function StudentData() {
       
       // 1. Get all students in this class
       const studentsSnap = await getDocs(query(collection(db, 'users'), where('classId', '==', className)));
+      const studentIds = studentsSnap.docs.map(d => d.id);
+      
       studentsSnap.forEach(d => {
         batch.delete(firestoreDoc(db, 'users', d.id));
       });
@@ -205,6 +227,20 @@ export default function StudentData() {
       classSnap.forEach(d => {
         batch.delete(firestoreDoc(db, 'classes', d.id));
       });
+
+      // 3. Cleanup related data for ALL students in this class or by classId
+      // First by studentIds
+      const collections = ['exam_results', 'attendance', 'submissions'];
+      for (const col of collections) {
+        // Some collections might have classId field too, let's use that for faster lookup if possible
+        // but studentId is more reliable for individual cleanup. 
+        // For class deletion, filtering by classId is efficient.
+        const q = query(collection(db, col), where('classId', '==', className));
+        const snap = await getDocs(q);
+        snap.forEach(d => {
+          batch.delete(firestoreDoc(db, col, d.id));
+        });
+      }
       
       await batch.commit();
       
