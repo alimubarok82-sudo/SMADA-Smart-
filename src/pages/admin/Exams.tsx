@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, Search, X, Check, Trash2, XCircle, Sparkles, Loader2, Image as ImageIcon, Upload } from 'lucide-react';
+import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, Search, X, Check, Trash2, XCircle, Sparkles, Loader2, Image as ImageIcon, Upload, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -40,8 +40,11 @@ export default function Exams() {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+  const [isAddingNewClass, setIsAddingNewClass] = useState(false);
+  const [newClassName, setNewClassName] = useState('');
   const [newExam, setNewExam] = useState({ 
     title: '', 
     subject: 'Informatika', 
@@ -51,6 +54,7 @@ export default function Exams() {
     targetClasses: [] as string[],
     questions: [] as any[]
   });
+  const [editingExam, setEditingExam] = useState<any>(null);
   const [classes, setClasses] = useState<string[]>([]);
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState({
@@ -262,6 +266,38 @@ export default function Exams() {
     }
   };
 
+  const handleUpdateExamData = async () => {
+    if (!editingExam || !editingExam.title) return;
+    try {
+      const { id, ...data } = editingExam;
+      await updateDoc(doc(db, 'exams', id), {
+        ...data,
+        totalQuestions: data.questions?.length || 0
+      });
+      setExams(exams.map(e => e.id === id ? { ...e, ...data } : e));
+      setShowEditModal(false);
+      setEditingExam(null);
+      alert('Berhasil memperbarui ujian!');
+    } catch (error) {
+      console.error("Error updating exam:", error);
+      alert('Gagal memperbarui ujian.');
+    }
+  };
+
+  const handleAddNewClass = async () => {
+    const trimmed = newClassName.trim();
+    if (trimmed && !classes.includes(trimmed)) {
+      try {
+        await addDoc(collection(db, 'classes'), { name: trimmed });
+        setClasses(prev => [...prev, trimmed].sort());
+        setNewClassName('');
+        setIsAddingNewClass(false);
+      } catch (error) {
+        console.error("Error adding class:", error);
+      }
+    }
+  };
+
   const updateStatus = async (id: string, status: 'upcoming' | 'active' | 'completed') => {
     try {
       await updateDoc(doc(db, 'exams', id), { status });
@@ -400,6 +436,18 @@ export default function Exams() {
                       </Button>
 
                       <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-10 w-10 p-0 rounded-xl text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50"
+                        onClick={() => {
+                          setEditingExam({ ...exam });
+                          setShowEditModal(true);
+                        }}
+                      >
+                        <Pencil size={18} />
+                      </Button>
+
+                      <Button 
                         variant="outline" 
                         size="sm" 
                         className="h-10 px-4 rounded-xl border-slate-200 font-bold text-slate-600"
@@ -498,7 +546,29 @@ export default function Exams() {
                     </div>
 
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Kelas (Bisa pilih lebih dari satu)</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Kelas (Bisa pilih lebih dari satu)</label>
+                        {isAddingNewClass ? (
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              placeholder="Nama kelas baru..." 
+                              className="h-7 w-32 text-[10px] py-1 rounded-md"
+                              value={newClassName}
+                              onChange={e => setNewClassName(e.target.value)}
+                              autoFocus
+                            />
+                            <Button size="sm" className="h-7 px-2 bg-emerald-600" onClick={handleAddNewClass}>Ok</Button>
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-slate-400" onClick={() => setIsAddingNewClass(false)}>X</Button>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => setIsAddingNewClass(true)}
+                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                          >
+                            <Plus size={12} /> Tambah Kelas Baru
+                          </button>
+                        )}
+                      </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
                         {classes.length === 0 ? (
                           <p className="text-xs text-slate-400 col-span-full">Tidak ada kelas tersedia</p>
@@ -741,6 +811,167 @@ export default function Exams() {
                       onClick={handleCreateExam}
                     >
                       <Check className="w-5 h-5 mr-2" /> Simpan Ujian
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Modal */}
+      <AnimatePresence>
+        {showEditModal && editingExam && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowEditModal(false);
+                setEditingExam(null);
+              }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-[32px] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+            >
+              <div className="p-8 overflow-y-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-slate-800">Edit Ujian</h3>
+                  <button onClick={() => {
+                    setShowEditModal(false);
+                    setEditingExam(null);
+                  }} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Judul Ujian</label>
+                      <Input 
+                        placeholder="Contoh: PTS Ganjil Informatika" 
+                        className="h-12 rounded-xl border-slate-200"
+                        value={editingExam.title}
+                        onChange={e => setEditingExam({ ...editingExam, title: e.target.value })}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mata Pelajaran</label>
+                      <select 
+                        className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={editingExam.subject}
+                        onChange={e => setEditingExam({ ...editingExam, subject: e.target.value })}
+                      >
+                        <option>Informatika</option>
+                        <option>Pemrograman</option>
+                        <option>Jaringan</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Kelas</label>
+                        {isAddingNewClass ? (
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              placeholder="Nama kelas baru..." 
+                              className="h-7 w-32 text-[10px] py-1 rounded-md"
+                              value={newClassName}
+                              onChange={e => setNewClassName(e.target.value)}
+                              autoFocus
+                            />
+                            <Button size="sm" className="h-7 px-2 bg-emerald-600" onClick={handleAddNewClass}>Ok</Button>
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-slate-400" onClick={() => setIsAddingNewClass(false)}>X</Button>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => setIsAddingNewClass(true)}
+                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                          >
+                            <Plus size={12} /> Tambah Kelas Baru
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        {classes.map(c => (
+                          <label key={c} className="flex items-center gap-2 cursor-pointer group">
+                            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                              (editingExam.targetClasses || []).includes(c) 
+                                ? 'bg-indigo-600 border-indigo-600' 
+                                : 'bg-white border-slate-300 group-hover:border-indigo-400'
+                            }`}>
+                              {(editingExam.targetClasses || []).includes(c) && <Check size={12} className="text-white" />}
+                              <input 
+                                type="checkbox"
+                                className="hidden"
+                                checked={(editingExam.targetClasses || []).includes(c)}
+                                onChange={(e) => {
+                                  const current = editingExam.targetClasses || [];
+                                  if (e.target.checked) {
+                                    setEditingExam({ ...editingExam, targetClasses: [...current, c] });
+                                  } else {
+                                    setEditingExam({ ...editingExam, targetClasses: current.filter((tc: string) => tc !== c) });
+                                  }
+                                }}
+                              />
+                            </div>
+                            <span className={`text-sm font-bold ${(editingExam.targetClasses || []).includes(c) ? 'text-indigo-600' : 'text-slate-600'}`}>{c}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Durasi</label>
+                      <select 
+                        className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={editingExam.duration}
+                        onChange={e => setEditingExam({ ...editingExam, duration: e.target.value })}
+                      >
+                        <option>15 Menit</option>
+                        <option>25 Menit</option>
+                        <option>30 Menit</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kolom Leger</label>
+                      <select 
+                        className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={editingExam.columnNumber}
+                        onChange={e => setEditingExam({ ...editingExam, columnNumber: parseInt(e.target.value) })}
+                      >
+                        {[...Array(15)].map((_, i) => (
+                          <option key={i+1} value={i+1}>Kolom {i+1}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex gap-3 sticky bottom-0 bg-white">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 h-12 rounded-xl font-bold border-slate-200"
+                      onClick={() => {
+                        setShowEditModal(false);
+                        setEditingExam(null);
+                      }}
+                    >
+                      Batal
+                    </Button>
+                    <Button 
+                      className="flex-1 h-12 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100"
+                      onClick={handleUpdateExamData}
+                    >
+                      <Check className="w-5 h-5 mr-2" /> Simpan Perubahan
                     </Button>
                   </div>
                 </div>
