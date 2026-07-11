@@ -187,6 +187,40 @@ export default function StudentData() {
     }
   };
 
+  const handleDeleteClass = async (className: string) => {
+    if (!confirm(`Hapus seluruh kelas ${className} dan SEMUA siswanya? Tindakan ini tidak dapat dibatalkan.`)) return;
+    
+    setLoading(true);
+    try {
+      const batch = writeBatch(db);
+      
+      // 1. Get all students in this class
+      const studentsSnap = await getDocs(query(collection(db, 'users'), where('classId', '==', className)));
+      studentsSnap.forEach(d => {
+        batch.delete(firestoreDoc(db, 'users', d.id));
+      });
+      
+      // 2. Get the class document
+      const classSnap = await getDocs(query(collection(db, 'classes'), where('name', '==', className)));
+      classSnap.forEach(d => {
+        batch.delete(firestoreDoc(db, 'classes', d.id));
+      });
+      
+      await batch.commit();
+      
+      // Refresh local state
+      await fetchClasses();
+      await fetchStudents();
+      
+      setUploadStatus({ success: true, message: `Kelas ${className} dan seluruh siswanya berhasil dihapus.` });
+    } catch (error) {
+      console.error("Error deleting class:", error);
+      alert("Gagal menghapus kelas.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDownloadTemplate = () => {
     const headers = ['Nama', 'Kelas', 'Password'];
     const rows = [
@@ -474,7 +508,16 @@ export default function StudentData() {
               >
                 <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden h-[250px] flex flex-col">
                   <CardHeader className="py-3 px-4 bg-slate-50 border-b border-slate-100 flex flex-row items-center justify-between sticky top-0 z-10">
-                    <CardTitle className="text-sm font-bold text-slate-800">{className}</CardTitle>
+                    <div className="flex items-center gap-3">
+                      <CardTitle className="text-sm font-bold text-slate-800">{className}</CardTitle>
+                      <button 
+                        onClick={() => handleDeleteClass(className)}
+                        className="text-slate-300 hover:text-red-500 transition-colors p-1"
+                        title="Hapus Kelas"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                     <div className="bg-white border border-slate-200 text-slate-600 text-[11px] font-bold px-2 py-0.5 rounded-md shadow-sm">
                       {students.length}
                     </div>
