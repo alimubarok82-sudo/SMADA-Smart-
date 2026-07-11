@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { MapPin, Clock, CheckCircle2, Loader2, Calendar } from 'lucide-react';
+import { Clock, CheckCircle2, Loader2, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -13,36 +13,14 @@ export default function StudentAttendance() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [alreadyCheckedIn, setAlreadyCheckedIn] = useState(false);
   const [checkInData, setCheckInData] = useState<any>(null);
-  const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
-  const [locationError, setLocationError] = useState('');
 
   const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     if (user) {
       checkTodayStatus();
-      requestLocation();
     }
   }, [user]);
-
-  const requestLocation = () => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-          setLocationError("Tidak dapat mengakses lokasi. Pastikan GPS aktif.");
-        }
-      );
-    } else {
-      setLocationError("Geolocation tidak didukung oleh browser ini.");
-    }
-  };
 
   const checkTodayStatus = async () => {
     if (!user) return;
@@ -76,14 +54,12 @@ export default function StudentAttendance() {
         classId: (user as any).classId || 'Unknown',
         date: today,
         timestamp: serverTimestamp(),
-        status: 'hadir',
-        location: location || null
+        status: 'hadir'
       });
       setAlreadyCheckedIn(true);
       setCheckInData({
         timestamp: new Date(),
-        status: 'hadir',
-        location: location
+        status: 'hadir'
       });
     } catch (error) {
       console.error("Error checking in:", error);
@@ -104,7 +80,7 @@ export default function StudentAttendance() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-black text-slate-800 tracking-tight">Presensi Kehadiran</h2>
+        <h2 className="text-2xl font-black text-slate-800 tracking-tight">Check-in</h2>
         <p className="text-slate-500 text-sm font-medium mt-1">Silahkan melakukan check-in kehadiran hari ini.</p>
       </div>
 
@@ -137,30 +113,10 @@ export default function StudentAttendance() {
                     <Clock size={12} />
                     <span>Waktu: {checkInData.timestamp?.toDate ? checkInData.timestamp.toDate().toLocaleTimeString('id-ID') : new Date().toLocaleTimeString('id-ID')} WIB</span>
                   </div>
-                  {checkInData.location && (
-                    <div className="flex items-center gap-1">
-                      <MapPin size={12} />
-                      <span>Lokasi tercatat</span>
-                    </div>
-                  )}
                 </div>
               </div>
             ) : (
               <>
-                <div className="w-full bg-slate-50 rounded-2xl p-6 space-y-4">
-                  <div className="flex items-start gap-3 text-left">
-                    <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-sm">
-                      <MapPin size={18} className="text-indigo-500" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Informasi Lokasi</p>
-                      <p className="text-sm font-semibold text-slate-700 mt-0.5">
-                        {location ? "Lokasi terdeteksi" : locationError || "Mencari lokasi..."}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
                 <Button 
                   onClick={handleCheckIn}
                   disabled={isSubmitting}
@@ -172,10 +128,6 @@ export default function StudentAttendance() {
                     "Check-in Sekarang"
                   )}
                 </Button>
-                
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                  PASTIKAN ANDA BERADA DI AREA SEKOLAH
-                </p>
               </>
             )}
           </div>
