@@ -171,31 +171,6 @@ export default function StudentDashboard() {
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-800">Absensi Hari Ini</h3>
-            </div>
-            <div className="p-4 bg-slate-50 rounded-xl space-y-3 mb-6">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-500">Jam Masuk</span>
-                <span className="font-medium text-slate-800">07:00 WIB</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-500">Batas Absen</span>
-                <span className="font-medium text-slate-800">07:15 WIB</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-slate-600 bg-white p-3 rounded-xl border border-slate-100 mt-2">
-                <MapPin size={16} className="text-indigo-500 shrink-0" />
-                <span>Lokasi Anda terdeteksi di area sekolah</span>
-              </div>
-            </div>
-            <div className="mt-auto">
-              <button className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-base shadow-xl shadow-indigo-100 transition-all">
-                Check In Sekarang
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-slate-800">Kirim Tugas</h3>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
