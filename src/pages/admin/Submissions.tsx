@@ -89,6 +89,18 @@ export default function Submissions() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Hapus penilaian portofolio ini?')) return;
+    
+    try {
+      await deleteDoc(doc(db, 'submissions', id));
+      setSubmissions(submissions.filter(s => s.id !== id));
+    } catch (error) {
+      console.error("Error deleting submission:", error);
+      alert("Gagal menghapus data.");
+    }
+  };
+
   const filtered = submissions.filter(s => {
     const matchesSearch = s.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (s.title || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -145,7 +157,7 @@ export default function Submissions() {
                           <Clock size={12} />
                           {sub.timestamp?.toDate ? sub.timestamp.toDate().toLocaleString('id-ID') : 'Baru saja'}
                         </div>
-                        <div className="pt-2">
+                        <div className="pt-2 flex items-center gap-2">
                           <Button 
                             variant="outline" 
                             size="sm" 
@@ -153,6 +165,15 @@ export default function Submissions() {
                             className="h-8 rounded-lg border-rose-200 text-rose-500 bg-white hover:bg-rose-50 font-bold text-[10px] px-3 shadow-sm transition-all"
                           >
                             <LinkIcon size={12} className="mr-2" /> Buka Link
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleDelete(sub.id)}
+                            className="h-8 w-8 rounded-lg p-0 text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all"
+                            title="Hapus Pengiriman"
+                          >
+                            <Trash2 size={14} />
                           </Button>
                         </div>
                       </div>
