@@ -53,7 +53,7 @@ export default function StudentDashboard() {
         console.warn("Student has no classId assigned in their profile.");
       }
 
-      const normalize = (s: string) => s?.trim().toUpperCase().replace(/\s+/g, '') || '';
+      const normalize = (s: string) => s?.trim().toUpperCase().replace(/[\s\-\.]/g, '') || '';
       const normalizedStudentClass = normalize(studentClass);
 
       const filteredExams = examsList.filter(exam => {

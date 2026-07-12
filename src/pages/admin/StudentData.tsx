@@ -208,19 +208,21 @@ export default function StudentData() {
   };
 
   const handleDeleteClass = async (className: string) => {
-    if (!confirm(`Hapus seluruh kelas ${className} dan SEMUA siswanya? Semua riwayat nilai, presensi, dan tugas di kelas ini juga akan ikut terhapus.`)) return;
+    if (!confirm(`Hapus seluruh data kelas "${className}"? Tindakan ini akan menghapus permanen:\n1. Seluruh data siswa di kelas ini\n2. Seluruh riwayat presensi siswa tersebut\n3. Seluruh nilai ujian siswa tersebut\n\nPastikan Anda sudah membackup data jika diperlukan.`)) return;
     
     setLoading(true);
     try {
       const batch = writeBatch(db);
       
-      // Helper function to normalize text for comparison
-      const normalize = (s: string) => s?.trim().toUpperCase().replace(/\s+/g, '') || '';
+      // Helper function to normalize text for robust comparison
+      // Removes spaces, hyphens, and dots to treat "XI-F4", "XI.F4", and "XIF4" as same
+      const normalize = (s: string) => s?.trim().toUpperCase().replace(/[\s\-\.]/g, '') || '';
       const targetNormalized = normalize(className);
 
-      // 1. Get all students and filter client-side for robustness against spacing
+      // 1. Get all students and filter client-side
       const studentsSnap = await getDocs(collection(db, 'users'));
       const studentDocsToDelete = studentsSnap.docs.filter(d => normalize(d.data().classId) === targetNormalized);
+      const studentIdsToDelete = studentDocsToDelete.map(d => d.id);
       
       studentDocsToDelete.forEach(d => {
         batch.delete(firestoreDoc(db, 'users', d.id));
@@ -235,13 +237,15 @@ export default function StudentData() {
       });
 
       // 3. Cleanup related data (exam_results, attendance, submissions)
+      // We check BOTH classId AND studentId for maximum reliability
       const collections = ['exam_results', 'attendance', 'submissions'];
       for (const col of collections) {
         const colSnap = await getDocs(collection(db, col));
         const docsToDelete = colSnap.docs.filter(d => {
           const data = d.data();
-          // Match by classId field in the record
-          return normalize(data.classId) === targetNormalized;
+          const matchesClass = normalize(data.classId) === targetNormalized;
+          const matchesStudent = data.studentId && studentIdsToDelete.includes(data.studentId);
+          return matchesClass || matchesStudent;
         });
         
         docsToDelete.forEach(d => {
@@ -255,10 +259,13 @@ export default function StudentData() {
       await fetchClasses();
       await fetchStudents();
       
-      setUploadStatus({ success: true, message: `Seluruh data terkait kelas ${className} berhasil dibersihkan dari database.` });
+      setUploadStatus({ 
+        success: true, 
+        message: `Database berhasil dibersihkan. Seluruh data terkait kelas "${className}" dan riwayat siswanya telah dihapus.` 
+      });
     } catch (error) {
       console.error("Error deleting class:", error);
-      alert("Gagal menghapus kelas. Pastikan koneksi internet stabil.");
+      alert("Gagal menghapus data kelas secara menyeluruh.");
     } finally {
       setLoading(false);
     }
