@@ -7,6 +7,7 @@ import { CheckCircle, Clock, FileText, MapPin, Trophy, Link as LinkIcon, Image a
 import { motion } from 'motion/react';
 import { collection, addDoc, serverTimestamp, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { formatDate } from '../../lib/utils';
 
 export default function StudentDashboard() {
   const { user } = useAuth();
@@ -76,7 +77,7 @@ export default function StudentDashboard() {
       const avgGrade = totalCount > 0 ? (totalPoints / totalCount).toFixed(1) : '0';
 
       // 4. Fetch Attendance Status for Today
-      const today = new Date().toLocaleDateString('en-CA');
+      const today = formatDate();
       const attQ = query(
         collection(db, 'attendance'),
         where('studentId', '==', user.uid),

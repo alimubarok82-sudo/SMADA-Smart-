@@ -6,6 +6,7 @@ import { motion } from 'motion/react';
 import { collection, getDocs, query, where, orderBy, limit, onSnapshot, deleteDoc, doc as firestoreDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Trash2, Edit2, RotateCcw, ShieldAlert, AlertCircle } from 'lucide-react';
+import { formatDate } from '../../lib/utils';
 
 const data = [
   { name: 'Sen', aktif: 45 },
@@ -35,6 +36,21 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchDashboardStats();
     
+    // Listen to today's attendance real-time
+    const today = formatDate();
+    const attQ = query(
+      collection(db, 'attendance'), 
+      where('date', '==', today), 
+      where('status', '==', 'hadir')
+    );
+    
+    const unsubscribeAtt = onSnapshot(attQ, (snapshot) => {
+      setDashboardStats(prev => ({
+        ...prev,
+        attendanceToday: snapshot.size
+      }));
+    });
+
     // Ambil daftar kelas secara menyeluruh
     const fetchClasses = async () => {
       try {
@@ -57,6 +73,8 @@ export default function AdminDashboard() {
       }
     };
     fetchClasses();
+
+    return () => unsubscribeAtt();
   }, []);
 
   // Update listener real-time berdasarkan pilihan kelas dan ujian
@@ -134,7 +152,7 @@ export default function AdminDashboard() {
       const totalClasses = classNames.size;
 
       // 4. Attendance Today
-      const today = new Date().toLocaleDateString('en-CA');
+      const today = formatDate();
       const attSnap = await getDocs(query(collection(db, 'attendance'), where('date', '==', today), where('status', '==', 'hadir')));
       const attendanceToday = attSnap.size;
 

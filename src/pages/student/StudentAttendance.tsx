@@ -6,6 +6,7 @@ import { Clock, CheckCircle2, Loader2, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { formatDate } from '../../lib/utils';
 
 export default function StudentAttendance() {
   const { user } = useAuth();
@@ -15,7 +16,7 @@ export default function StudentAttendance() {
   const [checkInData, setCheckInData] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
 
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = formatDate();
 
   useEffect(() => {
     if (user) {

@@ -6,6 +6,7 @@ import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, 
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { formatDate } from '../../lib/utils';
 import { useNavigate } from 'react-router-dom';
 
 interface Question {
@@ -239,7 +240,7 @@ export default function Exams() {
       const examData = {
         title: newExam.title,
         subject: newExam.subject,
-        date: new Date().toLocaleDateString('en-CA'),
+        date: formatDate(),
         duration: newExam.duration,
         status: 'upcoming',
         participants: 0,

@@ -5,6 +5,7 @@ import { Calendar as CalendarIcon, CheckCircle2, XCircle, Clock, Search, Filter,
 import { motion } from 'motion/react';
 import { collection, getDocs, query, where, orderBy, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { formatDate } from '../../lib/utils';
 
 interface Student {
   id: string;
@@ -14,7 +15,7 @@ interface Student {
 
 export default function Attendance() {
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
+  const [selectedDate, setSelectedDate] = useState(formatDate());
   const [classes, setClasses] = useState<string[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -271,7 +272,7 @@ export default function Attendance() {
           disabled={saving || loading}
           className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 rounded-xl h-12 font-bold shadow-lg shadow-indigo-200 transition-all"
         >
-          {saving ? 'Menyimpan...' : `Simpan Kehadiran ${selectedDate === new Date().toLocaleDateString('en-CA') ? 'Hari Ini' : selectedDate}`}
+          {saving ? 'Menyimpan...' : `Simpan Kehadiran ${selectedDate === formatDate() ? 'Hari Ini' : selectedDate}`}
         </Button>
       </div>
     </div>
