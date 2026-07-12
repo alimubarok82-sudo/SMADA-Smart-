@@ -483,12 +483,20 @@ export default function Exams() {
                       )}
 
                       {exam.status === 'completed' && (
-                        <Button 
-                          onClick={() => navigate(`/dashboard/exams/results/${exam.id}`)}
-                          className="h-10 px-6 rounded-xl font-bold bg-slate-800 hover:bg-black text-white shadow-lg shadow-slate-100"
-                        >
-                          <BarChart3 size={16} className="mr-2" /> Lihat Hasil
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            onClick={() => updateStatus(exam.id, 'active')}
+                            className="h-10 px-6 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100"
+                          >
+                            <Play size={16} className="mr-2" /> Aktifkan Lagi
+                          </Button>
+                          <Button 
+                            onClick={() => navigate(`/dashboard/exams/results/${exam.id}`)}
+                            className="h-10 px-6 rounded-xl font-bold bg-slate-800 hover:bg-black text-white shadow-lg shadow-slate-100"
+                          >
+                            <BarChart3 size={16} className="mr-2" /> Lihat Hasil
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
