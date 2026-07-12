@@ -39,9 +39,13 @@ export default function StudentExams() {
         const targetClass = exam.targetClass;
 
         if (targetClasses.length > 0) {
-          return targetClasses.some((c: string) => normalize(c) === normalizedStudentClass);
+          const isMatch = targetClasses.some((c: string) => normalize(c) === normalizedStudentClass);
+          console.log(`[Exam Debug - StudentExams] Student Class: "${studentClass}" -> "${normalizedStudentClass}" | Exam: "${exam.title}" | Target Classes:`, targetClasses, `| isForClass:`, isMatch);
+          return isMatch;
         }
-        return !targetClass || normalize(targetClass) === normalizedStudentClass;
+        const isMatch = !targetClass || normalize(targetClass) === normalizedStudentClass;
+        console.log(`[Exam Debug - StudentExams] Student Class: "${studentClass}" -> "${normalizedStudentClass}" | Exam: "${exam.title}" | Target Class: "${targetClass}" | isForClass:`, isMatch);
+        return isMatch;
       });
       
       setExams(filteredByClass);

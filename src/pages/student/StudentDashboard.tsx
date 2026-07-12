@@ -65,6 +65,8 @@ export default function StudentDashboard() {
           ? targetClasses.some((c: string) => normalize(c) === normalizedStudentClass)
           : (!targetClass || normalize(targetClass) === normalizedStudentClass);
         
+        console.log(`[Exam Debug] Student Class: "${studentClass}" -> "${normalizedStudentClass}" | Exam: "${exam.title}" | Target Classes:`, targetClasses, `| Target Class: "${targetClass}" | isForClass:`, isForClass);
+
         return notCompleted && isForClass;
       });
       const activeExamsCount = filteredExams.length;

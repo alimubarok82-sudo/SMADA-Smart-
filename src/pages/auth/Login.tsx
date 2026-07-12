@@ -112,7 +112,18 @@ export default function Login() {
     const syntheticEmail = `${selectedName.toLowerCase().replace(/\s+/g, '.')}@siswa.smada.id`;
 
     try {
-      await signInWithEmailAndPassword(auth, syntheticEmail, password);
+      const cred = await signInWithEmailAndPassword(auth, syntheticEmail, password);
+      
+      // Ensure Firestore document exists and is up to date (in case they were re-uploaded by admin)
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        email: syntheticEmail,
+        displayName: selectedName,
+        role: 'siswa',
+        classId: selectedClass,
+        password: password,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      
     } catch (err: any) {
       // Auto-register with Firebase Auth using the password from Firestore
       try {
