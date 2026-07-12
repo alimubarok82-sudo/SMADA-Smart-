@@ -21,6 +21,10 @@ export default function StudentExams() {
     setLoading(true);
     try {
       const studentClass = (user as any).classId;
+      if (!studentClass) {
+        console.warn("Student has no classId assigned.");
+      }
+
       let q = query(collection(db, 'exams'), where('status', '==', 'active'), orderBy('title'));
       
       const snap = await getDocs(q);

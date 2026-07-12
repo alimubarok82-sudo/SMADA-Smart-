@@ -48,6 +48,11 @@ export default function StudentDashboard() {
 
       // Filter exams to show only those not yet completed
       const studentClass = (user as any).classId;
+      
+      if (!studentClass) {
+        console.warn("Student has no classId assigned in their profile.");
+      }
+
       const filteredExams = examsList.filter(exam => {
         const notCompleted = !completedExamIds.includes(exam.id);
         const isForClass = (exam as any).targetClasses && (exam as any).targetClasses.length > 0

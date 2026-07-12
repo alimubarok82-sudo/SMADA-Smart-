@@ -420,7 +420,11 @@ export default function Exams() {
                         </div>
                         {(exam.targetClasses || exam.targetClass) && (
                           <div className="flex items-center gap-2">
-                            <Check size={14} className="text-indigo-400" /> Kelas: {exam.targetClasses ? exam.targetClasses.join(', ') : exam.targetClass}
+                            <Check size={14} className="text-indigo-400" /> Kelas: {
+                              exam.targetClasses?.length === classes.length && classes.length > 0
+                                ? 'Semua Kelas'
+                                : exam.targetClasses ? exam.targetClasses.join(', ') : exam.targetClass
+                            }
                           </div>
                         )}
                       </div>
@@ -548,27 +552,41 @@ export default function Exams() {
 
                     <div className="space-y-2 md:col-span-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Kelas (Bisa pilih lebih dari satu)</label>
-                        {isAddingNewClass ? (
-                          <div className="flex items-center gap-2">
-                            <Input 
-                              placeholder="Nama kelas baru..." 
-                              className="h-7 w-32 text-[10px] py-1 rounded-md"
-                              value={newClassName}
-                              onChange={e => setNewClassName(e.target.value)}
-                              autoFocus
-                            />
-                            <Button size="sm" className="h-7 px-2 bg-emerald-600" onClick={handleAddNewClass}>Ok</Button>
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-slate-400" onClick={() => setIsAddingNewClass(false)}>X</Button>
-                          </div>
-                        ) : (
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Kelas ({newExam.targetClasses.length === classes.length ? 'Semua Kelas' : `${newExam.targetClasses.length} Kelas`})</label>
+                        <div className="flex items-center gap-4">
+                          {isAddingNewClass ? (
+                            <div className="flex items-center gap-2">
+                              <Input 
+                                placeholder="Nama kelas baru..." 
+                                className="h-7 w-32 text-[10px] py-1 rounded-md"
+                                value={newClassName}
+                                onChange={e => setNewClassName(e.target.value)}
+                                autoFocus
+                              />
+                              <Button size="sm" className="h-7 px-2 bg-emerald-600" onClick={handleAddNewClass}>Ok</Button>
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-slate-400" onClick={() => setIsAddingNewClass(false)}>X</Button>
+                            </div>
+                          ) : (
+                            <button 
+                              onClick={() => setIsAddingNewClass(true)}
+                              className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                            >
+                              <Plus size={12} /> Tambah Kelas Baru
+                            </button>
+                          )}
                           <button 
-                            onClick={() => setIsAddingNewClass(true)}
-                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                            onClick={() => {
+                              if (newExam.targetClasses.length === classes.length) {
+                                setNewExam({ ...newExam, targetClasses: [] });
+                              } else {
+                                setNewExam({ ...newExam, targetClasses: [...classes] });
+                              }
+                            }}
+                            className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
                           >
-                            <Plus size={12} /> Tambah Kelas Baru
+                            {newExam.targetClasses.length === classes.length ? 'Batal Semua' : 'Pilih Semua Kelas'}
                           </button>
-                        )}
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
                         {classes.length === 0 ? (
@@ -879,27 +897,42 @@ export default function Exams() {
 
                     <div className="space-y-2 md:col-span-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Kelas</label>
-                        {isAddingNewClass ? (
-                          <div className="flex items-center gap-2">
-                            <Input 
-                              placeholder="Nama kelas baru..." 
-                              className="h-7 w-32 text-[10px] py-1 rounded-md"
-                              value={newClassName}
-                              onChange={e => setNewClassName(e.target.value)}
-                              autoFocus
-                            />
-                            <Button size="sm" className="h-7 px-2 bg-emerald-600" onClick={handleAddNewClass}>Ok</Button>
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-slate-400" onClick={() => setIsAddingNewClass(false)}>X</Button>
-                          </div>
-                        ) : (
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Kelas ({(editingExam.targetClasses || []).length === classes.length ? 'Semua Kelas' : `${(editingExam.targetClasses || []).length} Kelas`})</label>
+                        <div className="flex items-center gap-4">
+                          {isAddingNewClass ? (
+                            <div className="flex items-center gap-2">
+                              <Input 
+                                placeholder="Nama kelas baru..." 
+                                className="h-7 w-32 text-[10px] py-1 rounded-md"
+                                value={newClassName}
+                                onChange={e => setNewClassName(e.target.value)}
+                                autoFocus
+                              />
+                              <Button size="sm" className="h-7 px-2 bg-emerald-600" onClick={handleAddNewClass}>Ok</Button>
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-slate-400" onClick={() => setIsAddingNewClass(false)}>X</Button>
+                            </div>
+                          ) : (
+                            <button 
+                              onClick={() => setIsAddingNewClass(true)}
+                              className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                            >
+                              <Plus size={12} /> Tambah Kelas Baru
+                            </button>
+                          )}
                           <button 
-                            onClick={() => setIsAddingNewClass(true)}
-                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                            onClick={() => {
+                              const current = editingExam.targetClasses || [];
+                              if (current.length === classes.length) {
+                                setEditingExam({ ...editingExam, targetClasses: [] });
+                              } else {
+                                setEditingExam({ ...editingExam, targetClasses: [...classes] });
+                              }
+                            }}
+                            className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
                           >
-                            <Plus size={12} /> Tambah Kelas Baru
+                            {(editingExam.targetClasses || []).length === classes.length ? 'Batal Semua' : 'Pilih Semua Kelas'}
                           </button>
-                        )}
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
                         {classes.map(c => (
