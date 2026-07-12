@@ -47,11 +47,14 @@ export default function StudentDashboard() {
       const completedExamIds = resultsSnap.docs.map(doc => doc.data().examId);
 
       // Filter exams to show only those not yet completed
-      const studentClass = (user as any).classId?.trim();
+      const studentClass = (user as any).classId;
       
       if (!studentClass) {
         console.warn("Student has no classId assigned in their profile.");
       }
+
+      const normalize = (s: string) => s?.trim().toUpperCase().replace(/\s+/g, '') || '';
+      const normalizedStudentClass = normalize(studentClass);
 
       const filteredExams = examsList.filter(exam => {
         const notCompleted = !completedExamIds.includes(exam.id);
@@ -59,8 +62,8 @@ export default function StudentDashboard() {
         const targetClass = (exam as any).targetClass;
         
         const isForClass = targetClasses.length > 0
-          ? targetClasses.some((c: string) => c?.trim() === studentClass)
-          : (!targetClass || targetClass?.trim() === studentClass);
+          ? targetClasses.some((c: string) => normalize(c) === normalizedStudentClass)
+          : (!targetClass || normalize(targetClass) === normalizedStudentClass);
         
         return notCompleted && isForClass;
       });

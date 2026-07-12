@@ -20,10 +20,13 @@ export default function StudentExams() {
     if (!user) return;
     setLoading(true);
     try {
-      const studentClass = (user as any).classId?.trim();
+      const studentClass = (user as any).classId;
       if (!studentClass) {
         console.warn("Student has no classId assigned.");
       }
+
+      const normalize = (s: string) => s?.trim().toUpperCase().replace(/\s+/g, '') || '';
+      const normalizedStudentClass = normalize(studentClass);
 
       let q = query(collection(db, 'exams'), where('status', '==', 'active'), orderBy('title'));
       
@@ -36,9 +39,9 @@ export default function StudentExams() {
         const targetClass = exam.targetClass;
 
         if (targetClasses.length > 0) {
-          return targetClasses.some((c: string) => c?.trim() === studentClass);
+          return targetClasses.some((c: string) => normalize(c) === normalizedStudentClass);
         }
-        return !targetClass || targetClass?.trim() === studentClass;
+        return !targetClass || normalize(targetClass) === normalizedStudentClass;
       });
       
       setExams(filteredByClass);
