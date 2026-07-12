@@ -271,6 +271,48 @@ export default function StudentData() {
     }
   };
 
+  const handleResetOrphanedData = async () => {
+    if (!confirm('Fitur ini akan membersihkan data absensi dan nilai ujian yang usang/nyangkut (misalnya karena kelas dihapus sebelumnya). Lanjutkan?')) return;
+    setLoading(true);
+    try {
+      const batch = writeBatch(db);
+      
+      // Get all valid users
+      const usersSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'siswa')));
+      const validStudentIds = new Set(usersSnap.docs.map(d => d.id));
+      
+      let deletedCount = 0;
+      
+      const collections = ['exam_results', 'attendance', 'submissions'];
+      for (const col of collections) {
+        const colSnap = await getDocs(collection(db, col));
+        colSnap.docs.forEach(doc => {
+          const data = doc.data();
+          // If the studentId in the record no longer exists in users collection, it's orphaned
+          if (data.studentId && !validStudentIds.has(data.studentId)) {
+            batch.delete(doc.ref);
+            deletedCount++;
+          }
+        });
+      }
+      
+      if (deletedCount > 0) {
+        await batch.commit();
+        alert(`Berhasil membersihkan ${deletedCount} data sampah (absensi & nilai) dari sistem.`);
+        setUploadStatus({ success: true, message: `Berhasil membersihkan ${deletedCount} data sampah.` });
+      } else {
+        alert("Sistem sudah bersih, tidak ada data sampah ditemukan.");
+        setUploadStatus({ success: true, message: `Sistem sudah bersih.` });
+      }
+      
+    } catch (error) {
+      console.error("Error cleaning up orphaned data:", error);
+      alert("Terjadi kesalahan saat membersihkan data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDownloadTemplate = () => {
     const headers = ['Nama', 'Kelas', 'Password'];
     const rows = [
@@ -427,12 +469,21 @@ export default function StudentData() {
 
       {/* Tambah Siswa Card */}
       <Card className="rounded-3xl border-slate-100 shadow-sm overflow-hidden bg-white">
-        <CardHeader className="bg-white border-b border-slate-50 flex flex-row items-center justify-between py-4 px-6">
+        <CardHeader className="bg-white border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between py-4 px-6 gap-4">
           <div className="flex items-center space-x-2">
             <UserPlus className="w-5 h-5 text-emerald-600" />
             <CardTitle className="text-lg font-bold text-emerald-800">Tambah Siswa</CardTitle>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 text-xs font-medium text-rose-600 border-rose-100 hover:bg-rose-50 rounded-lg"
+              onClick={handleResetOrphanedData}
+              title="Bersihkan data absensi & nilai dari kelas/siswa yang sudah dihapus"
+            >
+              <Trash2 className="w-3 h-3 mr-1.5" /> Bersihkan Data Error
+            </Button>
             <Button 
               variant="outline" 
               size="sm" 

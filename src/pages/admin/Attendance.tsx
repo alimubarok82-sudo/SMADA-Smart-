@@ -146,6 +146,52 @@ export default function Attendance() {
     }
   };
 
+  const handleResetAttendance = async () => {
+    if (!confirm(`Yakin ingin mereset/menghapus semua data absensi kelas ${selectedClass} untuk tanggal ${selectedDate}? (Ini berguna jika ada data error/nyangkut)`)) return;
+    setSaving(true);
+    try {
+      const batch = writeBatch(db);
+      
+      // 1. Delete by classId
+      const attQ = query(
+        collection(db, 'attendance'),
+        where('classId', '==', selectedClass),
+        where('date', '==', selectedDate)
+      );
+      const existingSnap = await getDocs(attQ);
+      existingSnap.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      // 2. Also delete by studentId (to catch orphaned records from renamed classes)
+      for (const student of students) {
+        const studentQ = query(
+          collection(db, 'attendance'),
+          where('studentId', '==', student.id),
+          where('date', '==', selectedDate)
+        );
+        const studentSnap = await getDocs(studentQ);
+        studentSnap.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+      }
+
+      await batch.commit();
+      
+      // Reset local state
+      const resetState: Record<string, 'hadir' | 'izin' | 'sakit' | 'alpa'> = {};
+      students.forEach(s => resetState[s.id] = 'alpa');
+      setAttendance(resetState);
+      
+      alert(`Berhasil mereset absensi kelas ${selectedClass} tanggal ${selectedDate}`);
+    } catch (error) {
+      console.error("Error resetting attendance:", error);
+      alert("Gagal mereset absensi.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const stats = {
     hadir: Object.values(attendance).filter(v => v === 'hadir').length,
     izin: Object.values(attendance).filter(v => v === 'izin').length,
@@ -177,6 +223,15 @@ export default function Attendance() {
           >
             {classes.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
+          <Button 
+            onClick={handleResetAttendance} 
+            disabled={saving || students.length === 0}
+            variant="outline"
+            className="h-10 px-4 rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50"
+            title="Hapus / Reset semua absensi hari ini"
+          >
+            Reset
+          </Button>
         </div>
       </div>
 
