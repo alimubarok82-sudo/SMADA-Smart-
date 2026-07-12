@@ -548,8 +548,8 @@ export default function StudentData() {
                       <CardTitle className="text-sm font-bold text-slate-800">{className}</CardTitle>
                       <button 
                         onClick={() => handleDeleteClass(className)}
-                        className="text-slate-300 hover:text-red-500 transition-colors p-1"
-                        title="Hapus Kelas"
+                        className="text-rose-300 hover:text-rose-600 transition-colors p-1.5 hover:bg-rose-50 rounded-lg"
+                        title="Hapus Seluruh Data Kelas & Siswa"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
