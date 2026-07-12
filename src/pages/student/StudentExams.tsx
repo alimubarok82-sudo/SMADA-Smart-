@@ -20,7 +20,7 @@ export default function StudentExams() {
     if (!user) return;
     setLoading(true);
     try {
-      const studentClass = (user as any).classId;
+      const studentClass = (user as any).classId?.trim();
       if (!studentClass) {
         console.warn("Student has no classId assigned.");
       }
@@ -32,10 +32,13 @@ export default function StudentExams() {
       
       // Filter by class client-side or use another query if targetClass is set
       const filteredByClass = allActiveExams.filter((exam: any) => {
-        if (exam.targetClasses && exam.targetClasses.length > 0) {
-          return exam.targetClasses.includes(studentClass);
+        const targetClasses = exam.targetClasses || [];
+        const targetClass = exam.targetClass;
+
+        if (targetClasses.length > 0) {
+          return targetClasses.some((c: string) => c?.trim() === studentClass);
         }
-        return !exam.targetClass || exam.targetClass === studentClass;
+        return !targetClass || targetClass?.trim() === studentClass;
       });
       
       setExams(filteredByClass);
