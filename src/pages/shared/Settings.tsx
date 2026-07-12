@@ -17,8 +17,11 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'motion/react';
 
+type Tab = 'profile' | 'security' | 'notifications' | 'appearance';
+
 export default function SettingsPage() {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<Tab>('profile');
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -67,19 +70,31 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Sidebar Nav */}
         <div className="space-y-2">
-          <button className="w-full flex items-center gap-3 px-4 py-3 bg-indigo-50 text-indigo-700 rounded-2xl font-bold text-sm transition-all shadow-sm shadow-indigo-100">
+          <button 
+            onClick={() => setActiveTab('profile')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'profile' ? 'bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-100' : 'text-slate-500 hover:bg-white'}`}
+          >
             <User size={18} />
             Profil Pengguna
           </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-white rounded-2xl font-bold text-sm transition-all">
+          <button 
+            onClick={() => setActiveTab('security')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'security' ? 'bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-100' : 'text-slate-500 hover:bg-white'}`}
+          >
             <Lock size={18} />
             Keamanan
           </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-white rounded-2xl font-bold text-sm transition-all">
+          <button 
+            onClick={() => setActiveTab('notifications')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'notifications' ? 'bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-100' : 'text-slate-500 hover:bg-white'}`}
+          >
             <Bell size={18} />
             Notifikasi
           </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-white rounded-2xl font-bold text-sm transition-all">
+          <button 
+            onClick={() => setActiveTab('appearance')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all ${activeTab === 'appearance' ? 'bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-100' : 'text-slate-500 hover:bg-white'}`}
+          >
             <Globe size={18} />
             Tampilan & Bahasa
           </button>
@@ -87,7 +102,7 @@ export default function SettingsPage() {
 
         {/* Content Area */}
         <div className="md:col-span-2 space-y-8">
-          {/* Profile Section */}
+          {activeTab === 'profile' && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -146,8 +161,9 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           </motion.div>
+          )}
 
-          {/* Security Section */}
+          {activeTab === 'security' && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -215,15 +231,16 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           </motion.div>
+          )}
 
-          {/* Additional Preferences */}
+          {activeTab === 'notifications' && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
             <Card className="rounded-[32px] border-slate-100 shadow-sm overflow-hidden bg-white">
-              <CardContent className="p-8">
+              <CardContent className="p-8 mt-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
@@ -241,6 +258,34 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           </motion.div>
+          )}
+
+          {activeTab === 'appearance' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="rounded-[32px] border-slate-100 shadow-sm overflow-hidden bg-white">
+              <CardContent className="p-8 mt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
+                      <Globe size={24} />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-slate-800">Bahasa Indonesia</h4>
+                      <p className="text-xs text-slate-500 font-medium">Bahasa utama yang digunakan di aplikasi.</p>
+                    </div>
+                  </div>
+                  <div className="text-indigo-600 font-bold text-sm">
+                    Aktif
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+          )}
         </div>
       </div>
     </div>
