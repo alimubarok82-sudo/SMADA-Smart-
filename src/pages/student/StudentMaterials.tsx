@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Loader2, CheckCircle, Circle, Lock } from 'lucide-react';
+import { Loader2, CheckCircle, Circle, Lock, CornerDownRight } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const normalize = (str: string) => str ? str.replace(/\s+/g, '').toUpperCase() : '';
@@ -16,6 +16,7 @@ interface Material {
   targetClasses: string[];
   completedClasses: string[];
   isActive: boolean;
+  isSubItem?: boolean;
   createdAt: any;
 }
 
@@ -134,13 +135,14 @@ export default function StudentMaterials() {
                           {/* Connecting Dot */}
                           <div className={`absolute -left-[36px] md:-left-[48px] top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-[3px] border-slate-100 ${isActive ? 'bg-slate-500' : 'bg-slate-300'}`}></div>
 
-                          <div className="flex-1 pr-4">
+                          <div className={`flex-1 pr-4 flex items-start gap-2 ${item.isSubItem ? 'pl-6 md:pl-10' : ''}`}>
+                            {item.isSubItem && <CornerDownRight className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />}
                             {isActive ? (
-                              <a href={item.url} target="_blank" rel="noreferrer" className="font-semibold text-slate-700 group-hover:text-indigo-700 text-sm md:text-base inline-block">
+                              <a href={item.url} target="_blank" rel="noreferrer" className="font-semibold text-slate-700 group-hover:text-indigo-700 text-sm md:text-base inline-block pt-0.5">
                                 {item.title}
                               </a>
                             ) : (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 pt-0.5">
                                 <Lock size={16} className="text-slate-400" />
                                 <span className="font-semibold text-slate-500 text-sm md:text-base">
                                   {item.title}

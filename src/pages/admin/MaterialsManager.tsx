@@ -16,6 +16,7 @@ interface Material {
   targetClasses: string[];
   completedClasses: string[];
   isActive: boolean;
+  isSubItem?: boolean;
   createdAt: any;
 }
 
@@ -29,6 +30,7 @@ export default function MaterialsManager() {
   const [chapterTitle, setChapterTitle] = useState('');
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
+  const [isSubItem, setIsSubItem] = useState(false);
   const [targetClasses, setTargetClasses] = useState<string[]>([]);
 
   useEffect(() => {
@@ -79,6 +81,7 @@ export default function MaterialsManager() {
         chapterTitle: chapterTitle.trim(),
         title: title.trim(),
         url: url.trim(),
+        isSubItem,
         targetClasses,
         completedClasses: [],
         isActive: true,
@@ -86,6 +89,7 @@ export default function MaterialsManager() {
       });
       setTitle('');
       setUrl('');
+      setIsSubItem(false);
       setTargetClasses([]);
       fetchMaterials();
     } catch (error) {
@@ -198,6 +202,18 @@ export default function MaterialsManager() {
                     required
                   />
                 </div>
+                <div className="flex items-center gap-2 mt-2 mb-2">
+                  <input
+                    type="checkbox"
+                    id="isSubItem"
+                    checked={isSubItem}
+                    onChange={(e) => setIsSubItem(e.target.checked)}
+                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                  />
+                  <label htmlFor="isSubItem" className="text-sm font-semibold text-slate-600 cursor-pointer">
+                    Materi ini adalah Sub Materi (menjorok ke dalam)
+                  </label>
+                </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-600">Target Kelas (Pilih Minimal 1)</label>
                   <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2">
@@ -283,9 +299,10 @@ export default function MaterialsManager() {
                             <LinkIcon size={20} />
                           </div>
                           <div className="flex-1">
-                            <h3 className={`font-bold text-base ${item.isActive ? 'text-slate-800' : 'text-slate-500'}`}>
-                              <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md mr-2">{item.bab || "Bab"} - {item.chapterTitle || "Materi Umum"}</span>
-                              {item.title}
+                            <h3 className={`font-bold text-base flex items-center flex-wrap gap-2 ${item.isActive ? 'text-slate-800' : 'text-slate-500'}`}>
+                              <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md">{item.bab || "Bab"} - {item.chapterTitle || "Materi Umum"}</span>
+                              {item.isSubItem && <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-md font-bold uppercase">Sub Materi</span>}
+                              <span>{item.title}</span>
                             </h3>
                             <div className="flex items-center gap-3 mt-1 text-sm text-slate-500 font-medium">
                               <span className="bg-slate-100 px-2 py-0.5 rounded-md text-xs">{item.targetClasses.length} Kelas Target</span>
