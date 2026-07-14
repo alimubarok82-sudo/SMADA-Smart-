@@ -101,60 +101,62 @@ export default function Login() {
     // Find student in our db list to check password
     const studentObj = dbStudents[selectedClass]?.find(s => s.name === selectedName);
     
+    if (!studentObj || !studentObj.id) {
+      setError('Data siswa tidak ditemukan.');
+      setLoading(false);
+      return;
+    }
+
     // For this app, we check password against Firestore directly first
     // then use Firebase Auth for session management
-    if (studentObj && studentObj.password && studentObj.password !== password) {
+    if (studentObj.password && studentObj.password !== password) {
       setError('Password salah.');
       setLoading(false);
       return;
     }
 
-    const syntheticEmail = `${selectedName.toLowerCase().replace(/\s+/g, '.')}@siswa.smada.id`;
+    // Use a unique synthetic email and strong deterministic password for Firebase Auth
+    // This completely detaches Firebase Auth credentials from the user's actual password,
+    // solving issues with password changes, < 6 char passwords, and duplicate names.
+    const syntheticEmail = `${studentObj.id.toLowerCase()}@siswa.smada.id`;
+    const authPassword = `Auth_${studentObj.id}_Smada2026!`;
 
     try {
-      const cred = await signInWithEmailAndPassword(auth, syntheticEmail, password);
+      const cred = await signInWithEmailAndPassword(auth, syntheticEmail, authPassword);
       
       // Ensure Firestore document is up to date but keep the original admin-generated ID
-      if (studentObj && studentObj.id) {
+      await setDoc(doc(db, 'users', studentObj.id), {
+        email: syntheticEmail,
+        displayName: selectedName,
+        role: 'siswa',
+        classId: selectedClass,
+        password: password,
+        authUid: cred.user.uid,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      
+    } catch (err: any) {
+      // Auto-register with Firebase Auth
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, syntheticEmail, authPassword);
+        await updateProfile(cred.user, { displayName: selectedName });
+        
+        // Update the existing Firestore document instead of creating a new one
         await setDoc(doc(db, 'users', studentObj.id), {
           email: syntheticEmail,
           displayName: selectedName,
           role: 'siswa',
           classId: selectedClass,
-          password: password,
+          password: password, 
           authUid: cred.user.uid,
-          updatedAt: new Date().toISOString()
+          createdAt: new Date().toISOString()
         }, { merge: true });
-      }
-      
-    } catch (err: any) {
-      // Auto-register with Firebase Auth using the password from Firestore
-      try {
-        const cred = await createUserWithEmailAndPassword(auth, syntheticEmail, password);
-        await updateProfile(cred.user, { displayName: selectedName });
-        
-        // Update the existing Firestore document instead of creating a new one
-        if (studentObj && studentObj.id) {
-          await setDoc(doc(db, 'users', studentObj.id), {
-            email: syntheticEmail,
-            displayName: selectedName,
-            role: 'siswa',
-            classId: selectedClass,
-            password: password, 
-            authUid: cred.user.uid,
-            createdAt: new Date().toISOString()
-          }, { merge: true });
-        }
       } catch (createErr: any) {
         if (createErr.code === 'auth/operation-not-allowed') {
           loginDemo('siswa', selectedName, selectedClass, syntheticEmail);
           return;
         }
-        if (createErr.code === 'auth/email-already-in-use') {
-          setError('Siswa ini sudah memiliki akun Auth tapi password salah.');
-        } else {
-          setError('Login gagal. ' + createErr.message);
-        }
+        setError('Login gagal. ' + createErr.message);
       }
     } finally {
       setLoading(false);
