@@ -103,15 +103,10 @@ export default function StudentDashboard() {
       const materialsSnap = await getDocs(query(collection(db, 'materials'), where('isActive', '==', true), orderBy('createdAt', 'desc')));
       const materialsList = materialsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      // Filter materials by class prefix (X, XI, XII)
-      let studentGrade = 'Semua';
-      if (normalizedStudentClass.startsWith('XII')) studentGrade = 'XII';
-      else if (normalizedStudentClass.startsWith('XI')) studentGrade = 'XI';
-      else if (normalizedStudentClass.startsWith('X')) studentGrade = 'X';
-
       const filteredMaterials = materialsList.filter(m => {
-        const target = (m as any).targetGrade;
-        return target === 'Semua' || target === studentGrade;
+        const targets = (m as any).targetClasses || [];
+        // Check if student's raw class or normalized class is in the targets
+        return targets.includes(studentClass) || targets.map((c: string) => c.replace(/\s+/g, '').toUpperCase()).includes(normalizedStudentClass);
       });
 
       setStats({
@@ -282,23 +277,41 @@ export default function StudentDashboard() {
                   <p className="text-xs text-slate-400 font-medium">Belum ada materi untuk kelas Anda.</p>
                 </div>
               ) : (
-                materials.map((m, i) => (
-                  <a
-                    key={m.id}
-                    href={m.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center p-3 bg-indigo-50/50 hover:bg-indigo-50 border border-indigo-100 rounded-2xl group transition-all"
-                  >
-                    <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-                      <BookOpen size={18} />
-                    </div>
-                    <div className="ml-4 flex-1">
-                      <h4 className="text-sm font-bold text-slate-700 group-hover:text-indigo-700 transition-colors">{m.title}</h4>
-                      <p className="text-[10px] text-indigo-400 font-medium uppercase tracking-wider mt-0.5">Buka Materi <ChevronRight className="inline w-3 h-3" /></p>
-                    </div>
-                  </a>
-                ))
+                materials.map((m, i) => {
+                  const studentClass = (user as any)?.classId;
+                  const isCompleted = (m.completedClasses || []).includes(studentClass);
+                  
+                  return (
+                    <a
+                      key={m.id}
+                      href={m.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`flex items-center p-3 border rounded-2xl group transition-all ${
+                        isCompleted 
+                          ? 'bg-emerald-50/50 hover:bg-emerald-50 border-emerald-100' 
+                          : 'bg-indigo-50/50 hover:bg-indigo-50 border-indigo-100'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 bg-white rounded-xl shadow-sm border flex items-center justify-center shrink-0 ${
+                        isCompleted ? 'border-emerald-50 text-emerald-600' : 'border-indigo-50 text-indigo-600'
+                      }`}>
+                        {isCompleted ? <CheckCircle size={18} /> : <BookOpen size={18} />}
+                      </div>
+                      <div className="ml-4 flex-1">
+                        <h4 className={`text-sm font-bold transition-colors ${
+                          isCompleted ? 'text-emerald-800 group-hover:text-emerald-700' : 'text-slate-700 group-hover:text-indigo-700'
+                        }`}>{m.title}</h4>
+                        <p className={`text-[10px] font-medium uppercase tracking-wider mt-0.5 flex items-center ${
+                          isCompleted ? 'text-emerald-600' : 'text-indigo-400'
+                        }`}>
+                          {isCompleted ? 'Selesai Dikerjakan' : 'Buka Materi'}
+                          {!isCompleted && <ChevronRight className="inline w-3 h-3 ml-1" />}
+                        </p>
+                      </div>
+                    </a>
+                  );
+                })
               )}
             </div>
           </div>
