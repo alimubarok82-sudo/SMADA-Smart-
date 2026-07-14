@@ -298,24 +298,7 @@ export default function StudentDashboard() {
             </div>
           )}
 
-          {/* Daftar Isi / Materi */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-800">Daftar Isi & Materi</h3>
-            </div>
-            <div className="space-y-3">
-              <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                <BookOpen className="w-10 h-10 text-indigo-300 mx-auto mb-3" />
-                <p className="text-sm text-slate-600 font-medium mb-4">Materi terstruktur per bab telah dipindahkan ke menu khusus.</p>
-                <Button 
-                  onClick={() => navigate('/dashboard/materials')}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm"
-                >
-                  Buka Daftar Isi
-                </Button>
-              </div>
-            </div>
-          </div>
+
         </div>
 
         {/* Right Column */}
