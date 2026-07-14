@@ -304,48 +304,16 @@ export default function StudentDashboard() {
               <h3 className="text-lg font-bold text-slate-800">Daftar Isi & Materi</h3>
             </div>
             <div className="space-y-3">
-              {materials.length === 0 ? (
-                <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                  <BookOpen className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                  <p className="text-xs text-slate-400 font-medium">Belum ada materi untuk kelas Anda.</p>
-                </div>
-              ) : (
-                materials.map((m, i) => {
-                  const studentClass = (user as any)?.classId;
-                  const isCompleted = (m.completedClasses || []).includes(studentClass);
-                  
-                  return (
-                    <a
-                      key={m.id}
-                      href={m.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={`flex items-center p-3 border rounded-2xl group transition-all ${
-                        isCompleted 
-                          ? 'bg-emerald-50/50 hover:bg-emerald-50 border-emerald-100' 
-                          : 'bg-indigo-50/50 hover:bg-indigo-50 border-indigo-100'
-                      }`}
-                    >
-                      <div className={`w-10 h-10 bg-white rounded-xl shadow-sm border flex items-center justify-center shrink-0 ${
-                        isCompleted ? 'border-emerald-50 text-emerald-600' : 'border-indigo-50 text-indigo-600'
-                      }`}>
-                        {isCompleted ? <CheckCircle size={18} /> : <BookOpen size={18} />}
-                      </div>
-                      <div className="ml-4 flex-1">
-                        <h4 className={`text-sm font-bold transition-colors ${
-                          isCompleted ? 'text-emerald-800 group-hover:text-emerald-700' : 'text-slate-700 group-hover:text-indigo-700'
-                        }`}>{m.title}</h4>
-                        <p className={`text-[10px] font-medium uppercase tracking-wider mt-0.5 flex items-center ${
-                          isCompleted ? 'text-emerald-600' : 'text-indigo-400'
-                        }`}>
-                          {isCompleted ? 'Selesai Dikerjakan' : 'Buka Materi'}
-                          {!isCompleted && <ChevronRight className="inline w-3 h-3 ml-1" />}
-                        </p>
-                      </div>
-                    </a>
-                  );
-                })
-              )}
+              <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <BookOpen className="w-10 h-10 text-indigo-300 mx-auto mb-3" />
+                <p className="text-sm text-slate-600 font-medium mb-4">Materi terstruktur per bab telah dipindahkan ke menu khusus.</p>
+                <Button 
+                  onClick={() => navigate('/dashboard/materials')}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm"
+                >
+                  Buka Daftar Isi
+                </Button>
+              </div>
             </div>
           </div>
         </div>

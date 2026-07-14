@@ -18,6 +18,7 @@ import Grades from './pages/admin/Grades';
 import Submissions from './pages/admin/Submissions';
 import MaterialsManager from './pages/admin/MaterialsManager';
 import ClassAccounts from './pages/admin/ClassAccounts';
+import StudentMaterials from './pages/student/StudentMaterials';
 
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
   const { user, loading } = useAuth();
@@ -53,6 +54,14 @@ const AttendanceRouter = () => {
   return <StudentAttendance />;
 };
 
+const MaterialsRouter = () => {
+  const { user } = useAuth();
+  if (user?.role === 'admin' || user?.role === 'guru') {
+    return <MaterialsManager />;
+  }
+  return <StudentMaterials />;
+};
+
 export default function App() {
   return (
     <AuthProvider>
@@ -67,10 +76,10 @@ export default function App() {
             <Route path="students" element={<ProtectedRoute allowedRoles={['admin', 'guru']}><StudentData /></ProtectedRoute>} />
             <Route path="grades" element={<ProtectedRoute allowedRoles={['admin', 'guru']}><Grades /></ProtectedRoute>} />
             <Route path="submissions" element={<ProtectedRoute allowedRoles={['admin', 'guru']}><Submissions /></ProtectedRoute>} />
-            <Route path="materials" element={<ProtectedRoute allowedRoles={['admin', 'guru']}><MaterialsManager /></ProtectedRoute>} />
             <Route path="class-accounts" element={<ProtectedRoute allowedRoles={['admin', 'guru']}><ClassAccounts /></ProtectedRoute>} />
             
             {/* Shared Path, Different Components */}
+            <Route path="materials" element={<MaterialsRouter />} />
             <Route path="exams" element={<ExamRouter />} />
             <Route path="exams/results/:id" element={<ExamResults />} />
             <Route path="attendance" element={<AttendanceRouter />} />

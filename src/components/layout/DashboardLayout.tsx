@@ -54,6 +54,7 @@ export const DashboardLayout = () => {
       { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
       { name: 'Ujian Terkirim', path: '/dashboard/exams', icon: <Send size={20} /> },
       { name: 'Presensi', path: '/dashboard/attendance', icon: <CheckCircle size={20} /> },
+      { name: 'Daftar Isi', path: '/dashboard/materials', icon: <BookOpen size={20} /> },
     ];
   };
 

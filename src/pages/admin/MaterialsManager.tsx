@@ -11,6 +11,8 @@ interface Material {
   id: string;
   title: string;
   url: string;
+  bab?: string;
+  chapterTitle?: string;
   targetClasses: string[];
   completedClasses: string[];
   isActive: boolean;
@@ -23,6 +25,8 @@ export default function MaterialsManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const [bab, setBab] = useState('Bab 1');
+  const [chapterTitle, setChapterTitle] = useState('');
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
   const [targetClasses, setTargetClasses] = useState<string[]>([]);
@@ -71,6 +75,8 @@ export default function MaterialsManager() {
     setSaving(true);
     try {
       await addDoc(collection(db, 'materials'), {
+        bab: bab.trim(),
+        chapterTitle: chapterTitle.trim(),
         title: title.trim(),
         url: url.trim(),
         targetClasses,
@@ -149,8 +155,30 @@ export default function MaterialsManager() {
             </CardHeader>
             <CardContent className="p-6">
               <form onSubmit={handleAdd} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-600">Bab</label>
+                    <Input 
+                      placeholder="Contoh: Bab 1" 
+                      value={bab}
+                      onChange={(e) => setBab(e.target.value)}
+                      className="rounded-xl bg-slate-50 border-slate-200"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-600">Judul Bab</label>
+                    <Input 
+                      placeholder="Contoh: Strategi Algoritmik" 
+                      value={chapterTitle}
+                      onChange={(e) => setChapterTitle(e.target.value)}
+                      className="rounded-xl bg-slate-50 border-slate-200"
+                      required
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-600">Judul Materi</label>
+                  <label className="text-sm font-bold text-slate-600">Nama Sub Materi</label>
                   <Input 
                     placeholder="Contoh: Modul Pemrograman Dasar" 
                     value={title}
@@ -255,7 +283,10 @@ export default function MaterialsManager() {
                             <LinkIcon size={20} />
                           </div>
                           <div className="flex-1">
-                            <h3 className={`font-bold text-base ${item.isActive ? 'text-slate-800' : 'text-slate-500'}`}>{item.title}</h3>
+                            <h3 className={`font-bold text-base ${item.isActive ? 'text-slate-800' : 'text-slate-500'}`}>
+                              <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md mr-2">{item.bab || "Bab"} - {item.chapterTitle || "Materi Umum"}</span>
+                              {item.title}
+                            </h3>
                             <div className="flex items-center gap-3 mt-1 text-sm text-slate-500 font-medium">
                               <span className="bg-slate-100 px-2 py-0.5 rounded-md text-xs">{item.targetClasses.length} Kelas Target</span>
                               <a href={item.url} target="_blank" rel="noreferrer" className="hover:text-indigo-600 hover:underline truncate max-w-[200px] md:max-w-xs block">
