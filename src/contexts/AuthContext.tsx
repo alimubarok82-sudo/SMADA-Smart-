@@ -33,17 +33,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (userDoc.exists()) {
-            setUser({ uid: firebaseUser.uid, ...userDoc.data() } as User);
+          let userDocSnap = await getDoc(doc(db, 'users', firebaseUser.uid));
+          
+          if (userDocSnap.exists()) {
+            setUser({ uid: firebaseUser.uid, ...userDocSnap.data() } as User);
           } else {
-            // Default to siswa if doc not found
-            setUser({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email!,
-              displayName: firebaseUser.displayName || 'Unknown',
-              role: firebaseUser.email?.includes('guru') ? 'guru' : 'siswa'
-            });
+            // Fallback: Check if the user document is stored using an admin-generated ID
+            const { collection, query, where, getDocs } = await import('firebase/firestore');
+            const authUidQuery = query(collection(db, 'users'), where('authUid', '==', firebaseUser.uid));
+            const authUidSnaps = await getDocs(authUidQuery);
+            
+            if (!authUidSnaps.empty) {
+              const docData = authUidSnaps.docs[0];
+              setUser({ uid: docData.id, ...docData.data() } as User);
+            } else {
+              // Try querying by email as a last resort
+              if (firebaseUser.email) {
+                const emailQuery = query(collection(db, 'users'), where('email', '==', firebaseUser.email));
+                const emailSnaps = await getDocs(emailQuery);
+                if (!emailSnaps.empty) {
+                  const docData = emailSnaps.docs[0];
+                  setUser({ uid: docData.id, ...docData.data() } as User);
+                  return;
+                }
+              }
+              
+              // Default to basic Firebase auth details if no Firestore doc is found at all
+              setUser({
+                uid: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                displayName: firebaseUser.displayName || 'Unknown',
+                role: firebaseUser.email?.includes('guru') ? 'guru' : 'siswa'
+              });
+            }
           }
         } catch (error) {
           // Ignore permissions error for demo environment

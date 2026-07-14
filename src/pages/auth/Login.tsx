@@ -114,30 +114,37 @@ export default function Login() {
     try {
       const cred = await signInWithEmailAndPassword(auth, syntheticEmail, password);
       
-      // Ensure Firestore document exists and is up to date (in case they were re-uploaded by admin)
-      await setDoc(doc(db, 'users', cred.user.uid), {
-        email: syntheticEmail,
-        displayName: selectedName,
-        role: 'siswa',
-        classId: selectedClass,
-        password: password,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
+      // Ensure Firestore document is up to date but keep the original admin-generated ID
+      if (studentObj && studentObj.id) {
+        await setDoc(doc(db, 'users', studentObj.id), {
+          email: syntheticEmail,
+          displayName: selectedName,
+          role: 'siswa',
+          classId: selectedClass,
+          password: password,
+          authUid: cred.user.uid,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      }
       
     } catch (err: any) {
       // Auto-register with Firebase Auth using the password from Firestore
       try {
         const cred = await createUserWithEmailAndPassword(auth, syntheticEmail, password);
         await updateProfile(cred.user, { displayName: selectedName });
-        // Use the existing Firestore document or create new one
-        await setDoc(doc(db, 'users', cred.user.uid), {
-          email: syntheticEmail,
-          displayName: selectedName,
-          role: 'siswa',
-          classId: selectedClass,
-          password: password, // Keep password in firestore for easy retrieval by teacher
-          createdAt: new Date().toISOString()
-        });
+        
+        // Update the existing Firestore document instead of creating a new one
+        if (studentObj && studentObj.id) {
+          await setDoc(doc(db, 'users', studentObj.id), {
+            email: syntheticEmail,
+            displayName: selectedName,
+            role: 'siswa',
+            classId: selectedClass,
+            password: password, 
+            authUid: cred.user.uid,
+            createdAt: new Date().toISOString()
+          }, { merge: true });
+        }
       } catch (createErr: any) {
         if (createErr.code === 'auth/operation-not-allowed') {
           loginDemo('siswa', selectedName, selectedClass, syntheticEmail);
