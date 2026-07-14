@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { CheckCircle, Clock, FileText, MapPin, Trophy, Link as LinkIcon, Image as ImageIcon, Send, Loader2, ChevronRight } from 'lucide-react';
+import { CheckCircle, Clock, FileText, MapPin, Trophy, Link as LinkIcon, Image as ImageIcon, Send, Loader2, ChevronRight, BookOpen } from 'lucide-react';
 import { motion } from 'motion/react';
 import { collection, addDoc, serverTimestamp, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -26,6 +26,7 @@ export default function StudentDashboard() {
     attendance: 100
   });
   const [availableExams, setAvailableExams] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -65,8 +66,6 @@ export default function StudentDashboard() {
           ? targetClasses.some((c: string) => normalize(c) === normalizedStudentClass)
           : (!targetClass || normalize(targetClass) === normalizedStudentClass);
         
-        console.log(`[Exam Debug] Student Class: "${studentClass}" -> "${normalizedStudentClass}" | Exam: "${exam.title}" | Target Classes:`, targetClasses, `| Target Class: "${targetClass}" | isForClass:`, isForClass);
-
         return notCompleted && isForClass;
       });
       const activeExamsCount = filteredExams.length;
@@ -100,6 +99,21 @@ export default function StudentDashboard() {
       const attSnap = await getDocs(attQ);
       const hasCheckedIn = !attSnap.empty;
 
+      // 5. Fetch Active Materials (Daftar Isi)
+      const materialsSnap = await getDocs(query(collection(db, 'materials'), where('isActive', '==', true), orderBy('createdAt', 'desc')));
+      const materialsList = materialsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Filter materials by class prefix (X, XI, XII)
+      let studentGrade = 'Semua';
+      if (normalizedStudentClass.startsWith('XII')) studentGrade = 'XII';
+      else if (normalizedStudentClass.startsWith('XI')) studentGrade = 'XI';
+      else if (normalizedStudentClass.startsWith('X')) studentGrade = 'X';
+
+      const filteredMaterials = materialsList.filter(m => {
+        const target = (m as any).targetGrade;
+        return target === 'Semua' || target === studentGrade;
+      });
+
       setStats({
         activeExams: activeExamsCount,
         completedExams: completedExamsCount,
@@ -108,6 +122,7 @@ export default function StudentDashboard() {
       });
 
       setAvailableExams(filteredExams);
+      setMaterials(filteredMaterials);
     } catch (error) {
       console.error("Error fetching student dashboard data:", error);
     } finally {
@@ -253,6 +268,39 @@ export default function StudentDashboard() {
                 )}
               </button>
             </form>
+          </div>
+
+          {/* Daftar Isi / Materi */}
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-slate-800">Daftar Isi & Materi</h3>
+            </div>
+            <div className="space-y-3">
+              {materials.length === 0 ? (
+                <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  <BookOpen className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs text-slate-400 font-medium">Belum ada materi untuk kelas Anda.</p>
+                </div>
+              ) : (
+                materials.map((m, i) => (
+                  <a
+                    key={m.id}
+                    href={m.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center p-3 bg-indigo-50/50 hover:bg-indigo-50 border border-indigo-100 rounded-2xl group transition-all"
+                  >
+                    <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                      <BookOpen size={18} />
+                    </div>
+                    <div className="ml-4 flex-1">
+                      <h4 className="text-sm font-bold text-slate-700 group-hover:text-indigo-700 transition-colors">{m.title}</h4>
+                      <p className="text-[10px] text-indigo-400 font-medium uppercase tracking-wider mt-0.5">Buka Materi <ChevronRight className="inline w-3 h-3" /></p>
+                    </div>
+                  </a>
+                ))
+              )}
+            </div>
           </div>
         </div>
 
