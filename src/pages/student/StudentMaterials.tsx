@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Loader2, CheckCircle, Circle } from 'lucide-react';
+import { Loader2, CheckCircle, Circle, Lock } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const normalize = (str: string) => str ? str.replace(/\s+/g, '').toUpperCase() : '';
@@ -33,7 +33,7 @@ export default function StudentMaterials() {
   const fetchMaterials = async () => {
     setLoading(true);
     try {
-      const q = query(collection(db, 'materials'), where('isActive', '==', true), orderBy('createdAt', 'desc'));
+      const q = query(collection(db, 'materials'), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
       const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Material[];
       
@@ -125,26 +125,40 @@ export default function StudentMaterials() {
                 <div className="mt-2 ml-[70px] md:ml-[90px] flex flex-col relative z-10 shadow-sm w-full sm:w-11/12 md:w-3/4">
                   {group.items.map((item, itemIdx) => {
                      const isCompleted = (item.completedClasses || []).includes((user as any)?.classId);
+                     const isActive = item.isActive;
                      
                      return (
-                       <div key={item.id} className="relative bg-white border-x-2 border-b-2 border-slate-400 p-3 md:p-4 first:border-t-2 flex items-center justify-between group hover:bg-slate-50 transition-colors">
+                       <div key={item.id} className={`relative bg-white border-x-2 border-b-2 border-slate-400 p-3 md:p-4 first:border-t-2 flex items-center justify-between transition-colors ${isActive ? 'group hover:bg-slate-50' : 'opacity-70 bg-slate-50'}`}>
                           {/* Horizontal Branch */}
                           <div className="absolute -left-[32px] md:-left-[44px] top-1/2 w-[32px] md:w-[44px] h-0.5 bg-slate-400"></div>
                           {/* Connecting Dot */}
-                          <div className="absolute -left-[36px] md:-left-[48px] top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-slate-500 border-[3px] border-slate-100"></div>
+                          <div className={`absolute -left-[36px] md:-left-[48px] top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-[3px] border-slate-100 ${isActive ? 'bg-slate-500' : 'bg-slate-300'}`}></div>
 
                           <div className="flex-1 pr-4">
-                             <a href={item.url} target="_blank" rel="noreferrer" className="font-semibold text-slate-700 group-hover:text-indigo-700 text-sm md:text-base inline-block">
-                               {item.title}
-                             </a>
+                            {isActive ? (
+                              <a href={item.url} target="_blank" rel="noreferrer" className="font-semibold text-slate-700 group-hover:text-indigo-700 text-sm md:text-base inline-block">
+                                {item.title}
+                              </a>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <Lock size={16} className="text-slate-400" />
+                                <span className="font-semibold text-slate-500 text-sm md:text-base">
+                                  {item.title}
+                                </span>
+                              </div>
+                            )}
                           </div>
 
                           {/* Status */}
                           <div className="shrink-0 flex items-center justify-center">
-                             {isCompleted ? (
-                               <CheckCircle className="text-emerald-500 w-5 h-5 md:w-6 md:h-6" />
+                             {isActive ? (
+                               isCompleted ? (
+                                 <CheckCircle className="text-emerald-500 w-5 h-5 md:w-6 md:h-6" />
+                               ) : (
+                                 <Circle className="text-slate-300 w-5 h-5 md:w-6 md:h-6" />
+                               )
                              ) : (
-                               <Circle className="text-slate-300 w-5 h-5 md:w-6 md:h-6" />
+                               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-100 px-2 py-1 rounded-md">Terkunci</div>
                              )}
                           </div>
                        </div>

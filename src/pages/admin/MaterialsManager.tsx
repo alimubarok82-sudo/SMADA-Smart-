@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { motion } from 'motion/react';
-import { BookOpen, Plus, Trash2, Edit2, Link as LinkIcon, Power, PowerOff, Loader2, CheckCircle2, Circle } from 'lucide-react';
+import { BookOpen, Plus, Trash2, Edit2, Link as LinkIcon, Eye, EyeOff, Loader2, CheckCircle2, Circle } from 'lucide-react';
 
 interface Material {
   id: string;
@@ -301,9 +301,9 @@ export default function MaterialsManager() {
                               size="sm"
                               onClick={() => toggleStatus(item.id, item.isActive)}
                               className={`h-9 w-9 p-0 rounded-xl ${item.isActive ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                              title={item.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                              title={item.isActive ? 'Kunci Materi (Hanya Terlihat)' : 'Buka Materi (Bisa Diklik)'}
                             >
-                              {item.isActive ? <Power size={18} /> : <PowerOff size={18} />}
+                              {item.isActive ? <Eye size={18} /> : <EyeOff size={18} />}
                             </Button>
                             <Button
                               variant="ghost"
