@@ -25,6 +25,7 @@ export default function MaterialsManager() {
   const [allClasses, setAllClasses] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [bab, setBab] = useState('Bab 1');
   const [chapterTitle, setChapterTitle] = useState('');
@@ -32,6 +33,7 @@ export default function MaterialsManager() {
   const [url, setUrl] = useState('');
   const [isSubItem, setIsSubItem] = useState(false);
   const [targetClasses, setTargetClasses] = useState<string[]>([]);
+  const [filterClass, setFilterClass] = useState<string>('all');
 
   useEffect(() => {
     fetchMaterials();
@@ -67,7 +69,7 @@ export default function MaterialsManager() {
     }
   };
 
-  const handleAdd = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !url.trim() || targetClasses.length === 0) {
       alert("Harap isi judul, link, dan pilih minimal 1 kelas target.");
@@ -76,27 +78,62 @@ export default function MaterialsManager() {
 
     setSaving(true);
     try {
-      await addDoc(collection(db, 'materials'), {
-        bab: bab.trim(),
-        chapterTitle: chapterTitle.trim(),
-        title: title.trim(),
-        url: url.trim(),
-        isSubItem,
-        targetClasses,
-        completedClasses: [],
-        isActive: true,
-        createdAt: serverTimestamp()
-      });
+      if (editingId) {
+        await updateDoc(doc(db, 'materials', editingId), {
+          bab: bab.trim(),
+          chapterTitle: chapterTitle.trim(),
+          title: title.trim(),
+          url: url.trim(),
+          isSubItem,
+          targetClasses,
+        });
+      } else {
+        await addDoc(collection(db, 'materials'), {
+          bab: bab.trim(),
+          chapterTitle: chapterTitle.trim(),
+          title: title.trim(),
+          url: url.trim(),
+          isSubItem,
+          targetClasses,
+          completedClasses: [],
+          isActive: true,
+          createdAt: serverTimestamp()
+        });
+      }
+      setEditingId(null);
       setTitle('');
       setUrl('');
       setIsSubItem(false);
       setTargetClasses([]);
       fetchMaterials();
     } catch (error) {
-      console.error("Error adding material:", error);
+      console.error("Error saving material:", error);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEdit = (material: Material) => {
+    setEditingId(material.id);
+    setBab(material.bab || 'Bab 1');
+    setChapterTitle(material.chapterTitle || '');
+    setTitle(material.title || '');
+    setUrl(material.url || '');
+    setIsSubItem(!!material.isSubItem);
+    setTargetClasses(material.targetClasses || []);
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setBab('Bab 1');
+    setChapterTitle('');
+    setTitle('');
+    setUrl('');
+    setIsSubItem(false);
+    setTargetClasses([]);
   };
 
   const toggleStatus = async (id: string, currentStatus: boolean) => {
@@ -139,6 +176,10 @@ export default function MaterialsManager() {
     }
   };
 
+  const filteredMaterials = filterClass === 'all' 
+    ? materials 
+    : materials.filter(m => m.targetClasses.includes(filterClass));
+
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-6xl mx-auto">
       <div className="flex items-center gap-3 mb-8">
@@ -155,10 +196,10 @@ export default function MaterialsManager() {
         <div className="lg:col-span-1">
           <Card className="rounded-3xl border-slate-100 shadow-sm bg-white overflow-hidden">
             <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
-              <CardTitle className="text-lg font-bold text-slate-700">Tambah Daftar Isi</CardTitle>
+              <CardTitle className="text-lg font-bold text-slate-700">{editingId ? 'Edit Daftar Isi' : 'Tambah Daftar Isi'}</CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              <form onSubmit={handleAdd} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-600">Bab</label>
@@ -258,14 +299,28 @@ export default function MaterialsManager() {
                   </div>
                 </div>
                 
-                <Button 
-                  type="submit" 
-                  disabled={saving}
-                  className="w-full rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 mt-2"
-                >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                  Tambah Daftar Isi
-                </Button>
+                <div className="flex gap-2 mt-2">
+                  <Button 
+                    type="submit" 
+                    disabled={saving}
+                    className="flex-1 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : editingId ? <Edit2 className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                    {editingId ? 'Simpan Perubahan' : 'Tambah Daftar Isi'}
+                  </Button>
+                  
+                  {editingId && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={cancelEdit}
+                      disabled={saving}
+                      className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50"
+                    >
+                      Batal
+                    </Button>
+                  )}
+                </div>
               </form>
             </CardContent>
           </Card>
@@ -273,6 +328,27 @@ export default function MaterialsManager() {
 
         <div className="lg:col-span-2">
           <Card className="rounded-3xl border-slate-100 shadow-sm bg-white overflow-hidden h-full">
+            <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <CardTitle className="text-lg font-bold text-slate-700 flex items-center gap-2">
+                Daftar Materi
+                {filterClass !== 'all' && (
+                  <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-md">
+                    {filterClass}
+                  </span>
+                )}
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-bold text-slate-500 whitespace-nowrap">Filter Kelas:</label>
+                <select 
+                  className="h-10 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all min-w-[150px]"
+                  value={filterClass}
+                  onChange={(e) => setFilterClass(e.target.value)}
+                >
+                  <option value="all">Semua Kelas</option>
+                  {allClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </CardHeader>
             <CardContent className="p-0">
               {loading ? (
                 <div className="flex items-center justify-center h-64">
@@ -283,9 +359,14 @@ export default function MaterialsManager() {
                   <BookOpen className="w-12 h-12 mb-4 text-slate-300" />
                   <p className="font-medium">Belum ada daftar isi materi.</p>
                 </div>
+              ) : filteredMaterials.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                  <BookOpen className="w-12 h-12 mb-4 text-slate-300" />
+                  <p className="font-medium">Tidak ada materi untuk kelas ini.</p>
+                </div>
               ) : (
                 <div className="divide-y divide-slate-100">
-                  {materials.map((item, index) => (
+                  {filteredMaterials.map((item, index) => (
                     <motion.div 
                       key={item.id}
                       initial={{ opacity: 0, y: 10 }}
@@ -313,6 +394,15 @@ export default function MaterialsManager() {
                           </div>
                           
                           <div className="flex items-center gap-2 shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(item)}
+                              className="h-9 w-9 p-0 rounded-xl text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50"
+                              title="Edit Materi"
+                            >
+                              <Edit2 size={18} />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
