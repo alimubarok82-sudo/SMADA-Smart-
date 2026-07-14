@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { CheckCircle, Clock, FileText, MapPin, Trophy, Link as LinkIcon, Image as ImageIcon, Send, Loader2, ChevronRight, BookOpen } from 'lucide-react';
+import { CheckCircle, Clock, FileText, MapPin, Trophy, Link as LinkIcon, Image as ImageIcon, Send, Loader2, ChevronRight, BookOpen, Mail, KeyRound } from 'lucide-react';
 import { motion } from 'motion/react';
-import { collection, addDoc, serverTimestamp, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, where, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { formatDate } from '../../lib/utils';
 
@@ -27,6 +27,7 @@ export default function StudentDashboard() {
   });
   const [availableExams, setAvailableExams] = useState<any[]>([]);
   const [materials, setMaterials] = useState<any[]>([]);
+  const [classAccount, setClassAccount] = useState<{email: string, password?: string} | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -108,6 +109,14 @@ export default function StudentDashboard() {
         // Check if student's raw class or normalized class is in the targets
         return targets.includes(studentClass) || targets.map((c: string) => c.replace(/\s+/g, '').toUpperCase()).includes(normalizedStudentClass);
       });
+
+      // 6. Fetch Class Account
+      if (normalizedStudentClass) {
+        const classAccSnap = await getDoc(doc(db, 'class_accounts', normalizedStudentClass));
+        if (classAccSnap.exists()) {
+          setClassAccount(classAccSnap.data() as any);
+        }
+      }
 
       setStats({
         activeExams: activeExamsCount,
@@ -264,6 +273,30 @@ export default function StudentDashboard() {
               </button>
             </form>
           </div>
+
+          {/* Akun Kelas */}
+          {classAccount && (
+            <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-3xl p-6 shadow-sm border border-indigo-700 flex flex-col text-white mb-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                  <Mail size={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-indigo-100 uppercase tracking-wider">Akun Kelas { (user as any)?.classId }</h3>
+                  <p className="font-bold text-lg">{classAccount.email}</p>
+                </div>
+              </div>
+              {classAccount.password && (
+                <div className="bg-black/20 p-3 rounded-xl flex items-center justify-between mt-2 border border-white/10">
+                  <div className="flex items-center gap-2">
+                    <KeyRound size={16} className="text-indigo-200" />
+                    <span className="text-sm font-bold text-indigo-50 font-mono tracking-wider">{classAccount.password}</span>
+                  </div>
+                  <span className="text-[10px] uppercase font-bold text-indigo-300">Password</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Daftar Isi / Materi */}
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col">
