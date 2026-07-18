@@ -287,7 +287,7 @@ export default function StudentDashboard() {
                 </div>
               </div>
               {classAccount.password && (
-                <div className="bg-black/20 p-3 rounded-xl flex items-center justify-between mt-2 border border-white/10">
+                <div className="bg-black/20 p-3 rounded-xl flex items-center justify-between mt-2 border border-white/10 mb-3">
                   <div className="flex items-center gap-2">
                     <KeyRound size={16} className="text-indigo-200" />
                     <span className="text-sm font-bold text-indigo-50 font-mono tracking-wider">{classAccount.password}</span>
@@ -295,6 +295,15 @@ export default function StudentDashboard() {
                   <span className="text-[10px] uppercase font-bold text-indigo-300">Password</span>
                 </div>
               )}
+              <a 
+                href={`https://accounts.google.com/signin/v2/identifier?Email=${encodeURIComponent(classAccount.email)}`}
+                target="_blank" 
+                rel="noreferrer"
+                className="w-full bg-white text-indigo-700 font-bold text-sm py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-indigo-50 transition-colors"
+              >
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4" />
+                Login ke Google
+              </a>
             </div>
           )}
 
