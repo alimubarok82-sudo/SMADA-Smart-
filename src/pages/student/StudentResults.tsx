@@ -53,7 +53,7 @@ export default function StudentResults() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-slate-800 tracking-tight">Riwayat Ujian Terkirim</h2>
+          <h2 className="text-2xl font-black text-slate-800 tracking-tight">Riwayat Jawaban Terkirim</h2>
           <p className="text-slate-500 text-sm font-medium mt-1">Daftar ujian yang telah Anda selesaikan.</p>
         </div>
         <div className="relative group">
@@ -73,7 +73,7 @@ export default function StudentResults() {
           <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="w-8 h-8 text-slate-300" />
           </div>
-          <h3 className="text-lg font-bold text-slate-800">Belum ada ujian terkirim</h3>
+          <h3 className="text-lg font-bold text-slate-800">Belum ada jawaban terkirim</h3>
           <p className="text-slate-400 text-sm mt-1">Selesaikan ujian pertama Anda untuk melihat riwayat di sini.</p>
         </div>
       ) : (
