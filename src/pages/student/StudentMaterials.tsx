@@ -138,9 +138,15 @@ export default function StudentMaterials() {
                           <div className={`flex-1 pr-4 flex items-start gap-2 ${item.isSubItem ? 'pl-6 md:pl-10' : ''}`}>
                             {item.isSubItem && <CornerDownRight className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />}
                             {isActive ? (
-                              <a href={item.url} target="_blank" rel="noreferrer" className="font-semibold text-slate-700 group-hover:text-indigo-700 text-sm md:text-base inline-block pt-0.5">
-                                {item.title}
-                              </a>
+                              item.url ? (
+                                <a href={item.url} target="_blank" rel="noreferrer" className="font-semibold text-slate-700 group-hover:text-indigo-700 text-sm md:text-base inline-block pt-0.5">
+                                  {item.title}
+                                </a>
+                              ) : (
+                                <span className="font-semibold text-slate-700 text-sm md:text-base inline-block pt-0.5">
+                                  {item.title}
+                                </span>
+                              )
                             ) : (
                               <div className="flex items-center gap-2 pt-0.5">
                                 <Lock size={16} className="text-slate-400" />

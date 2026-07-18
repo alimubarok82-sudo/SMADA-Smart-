@@ -71,8 +71,8 @@ export default function MaterialsManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !url.trim() || targetClasses.length === 0) {
-      alert("Harap isi judul, link, dan pilih minimal 1 kelas target.");
+    if (!title.trim() || targetClasses.length === 0) {
+      alert("Harap isi judul dan pilih minimal 1 kelas target.");
       return;
     }
 
@@ -233,14 +233,13 @@ export default function MaterialsManager() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-600">Link / URL</label>
+                  <label className="text-sm font-bold text-slate-600">Link / URL (Opsional)</label>
                   <Input 
-                    placeholder="https://..." 
+                    placeholder="https://... (Kosongkan jika tidak ada)" 
                     type="url"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     className="rounded-xl bg-slate-50 border-slate-200"
-                    required
                   />
                 </div>
                 <div className="flex items-center gap-2 mt-2 mb-2">
@@ -387,9 +386,11 @@ export default function MaterialsManager() {
                             </h3>
                             <div className="flex items-center gap-3 mt-1 text-sm text-slate-500 font-medium">
                               <span className="bg-slate-100 px-2 py-0.5 rounded-md text-xs">{item.targetClasses.length} Kelas Target</span>
-                              <a href={item.url} target="_blank" rel="noreferrer" className="hover:text-indigo-600 hover:underline truncate max-w-[200px] md:max-w-xs block">
-                                {item.url}
-                              </a>
+                              {item.url && (
+                                <a href={item.url} target="_blank" rel="noreferrer" className="hover:text-indigo-600 hover:underline truncate max-w-[200px] md:max-w-xs block">
+                                  {item.url}
+                                </a>
+                              )}
                             </div>
                           </div>
                           
