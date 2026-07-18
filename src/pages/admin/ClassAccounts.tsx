@@ -12,6 +12,8 @@ interface ClassAccount {
   name: string;
   email: string;
   password?: string;
+  homeroomTeacher?: string;
+  homeroomTeacherPhone?: string;
 }
 
 export default function ClassAccounts() {
@@ -22,6 +24,8 @@ export default function ClassAccounts() {
   const [className, setClassName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [homeroomTeacher, setHomeroomTeacher] = useState('');
+  const [homeroomTeacherPhone, setHomeroomTeacherPhone] = useState('');
   
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -53,12 +57,16 @@ export default function ClassAccounts() {
         name: clsName,
         email: email.trim(),
         password: password.trim(),
+        homeroomTeacher: homeroomTeacher.trim(),
+        homeroomTeacherPhone: homeroomTeacherPhone.trim(),
         updatedAt: serverTimestamp()
       }, { merge: true });
       
       setClassName('');
       setEmail('');
       setPassword('');
+      setHomeroomTeacher('');
+      setHomeroomTeacherPhone('');
       fetchAccounts();
     } catch (error) {
       console.error("Error adding class account:", error);
@@ -67,11 +75,13 @@ export default function ClassAccounts() {
     }
   };
 
-  const handleUpdate = async (id: string, updatedEmail: string, updatedPassword?: string) => {
+  const handleUpdate = async (id: string, updatedEmail: string, updatedPassword?: string, updatedTeacher?: string, updatedTeacherPhone?: string) => {
     try {
       await setDoc(doc(db, 'class_accounts', id), {
         email: updatedEmail.trim(),
         password: updatedPassword?.trim() || '',
+        homeroomTeacher: updatedTeacher?.trim() || '',
+        homeroomTeacherPhone: updatedTeacherPhone?.trim() || '',
         updatedAt: serverTimestamp()
       }, { merge: true });
       setEditingId(null);
@@ -142,6 +152,26 @@ export default function ClassAccounts() {
                     className="rounded-xl bg-slate-50 border-slate-200"
                   />
                 </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-600">Nama Wali Kelas (Opsional)</label>
+                  <Input 
+                    placeholder="Contoh: Budi Santoso" 
+                    type="text"
+                    value={homeroomTeacher}
+                    onChange={(e) => setHomeroomTeacher(e.target.value)}
+                    className="rounded-xl bg-slate-50 border-slate-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-600">Nomor WA Wali Kelas (Opsional)</label>
+                  <Input 
+                    placeholder="Contoh: 08123456789" 
+                    type="tel"
+                    value={homeroomTeacherPhone}
+                    onChange={(e) => setHomeroomTeacherPhone(e.target.value)}
+                    className="rounded-xl bg-slate-50 border-slate-200"
+                  />
+                </div>
                 
                 <Button 
                   type="submit" 
@@ -206,16 +236,20 @@ function AccountRow({
   isEditing: boolean, 
   onEdit: () => void, 
   onCancel: () => void, 
-  onSave: (id: string, email: string, pwd?: string) => void, 
+  onSave: (id: string, email: string, pwd?: string, teacher?: string, teacherPhone?: string) => void, 
   onDelete: (id: string) => void 
 }) {
   const [editEmail, setEditEmail] = useState(account.email);
   const [editPwd, setEditPwd] = useState(account.password || '');
+  const [editTeacher, setEditTeacher] = useState(account.homeroomTeacher || '');
+  const [editTeacherPhone, setEditTeacherPhone] = useState(account.homeroomTeacherPhone || '');
 
   useEffect(() => {
     if (isEditing) {
       setEditEmail(account.email);
       setEditPwd(account.password || '');
+      setEditTeacher(account.homeroomTeacher || '');
+      setEditTeacherPhone(account.homeroomTeacherPhone || '');
     }
   }, [isEditing, account]);
 
@@ -245,12 +279,28 @@ function AccountRow({
               className="bg-white rounded-lg h-9" 
             />
           </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500">Nama Wali Kelas</label>
+            <Input 
+              value={editTeacher} 
+              onChange={(e) => setEditTeacher(e.target.value)} 
+              className="bg-white rounded-lg h-9" 
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500">Nomor WA Wali Kelas</label>
+            <Input 
+              value={editTeacherPhone} 
+              onChange={(e) => setEditTeacherPhone(e.target.value)} 
+              className="bg-white rounded-lg h-9" 
+            />
+          </div>
         </div>
         <div className="flex gap-2 justify-end">
           <Button variant="ghost" size="sm" onClick={onCancel} className="text-slate-500">
             <X size={16} className="mr-1.5" /> Batal
           </Button>
-          <Button variant="default" size="sm" onClick={() => onSave(account.id, editEmail, editPwd)} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
+          <Button variant="default" size="sm" onClick={() => onSave(account.id, editEmail, editPwd, editTeacher, editTeacherPhone)} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
             <Save size={16} className="mr-1.5" /> Simpan
           </Button>
         </div>
@@ -278,6 +328,12 @@ function AccountRow({
             <div className="flex items-center gap-2 mt-1 text-sm text-slate-500 font-medium">
               <KeyRound size={14} className="text-slate-400" />
               <span>{account.password}</span>
+            </div>
+          )}
+          {(account.homeroomTeacher || account.homeroomTeacherPhone) && (
+            <div className="flex flex-col gap-1 mt-2 p-2 bg-indigo-50/50 rounded-lg text-sm">
+              {account.homeroomTeacher && <div className="text-slate-600 font-medium"><span className="text-slate-400">Wali:</span> {account.homeroomTeacher}</div>}
+              {account.homeroomTeacherPhone && <div className="text-slate-600 font-medium"><span className="text-slate-400">WA:</span> {account.homeroomTeacherPhone}</div>}
             </div>
           )}
         </div>

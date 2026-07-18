@@ -27,6 +27,7 @@ export default function StudentData() {
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<{success: boolean, message: string} | null>(null);
   const [editingStudent, setEditingStudent] = useState<(Student & { password?: string }) | null>(null);
+  const [classAccounts, setClassAccounts] = useState<Record<string, any>>({});
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -61,6 +62,19 @@ export default function StudentData() {
       }
     } catch (error) {
       console.error("Error fetching classes:", error);
+    }
+  };
+
+  const fetchClassAccounts = async () => {
+    try {
+      const snap = await getDocs(query(collection(db, 'class_accounts')));
+      const accountsMap: Record<string, any> = {};
+      snap.forEach(doc => {
+        accountsMap[doc.id] = doc.data();
+      });
+      setClassAccounts(accountsMap);
+    } catch (error) {
+      console.error("Error fetching class accounts:", error);
     }
   };
 
@@ -104,6 +118,7 @@ export default function StudentData() {
   useEffect(() => {
     const init = async () => {
       await fetchClasses();
+      await fetchClassAccounts();
       await fetchStudents();
     };
     init();
@@ -608,18 +623,37 @@ export default function StudentData() {
                 transition={{ delay: i * 0.1 }}
               >
                 <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden h-[250px] flex flex-col">
-                  <CardHeader className="py-3 px-4 bg-slate-50 border-b border-slate-100 flex flex-row items-center justify-between sticky top-0 z-10">
-                    <div className="flex items-center gap-3">
-                      <CardTitle className="text-sm font-bold text-slate-800">{className}</CardTitle>
-                      <button 
-                        onClick={() => handleDeleteClass(className)}
-                        className="text-rose-300 hover:text-rose-600 transition-colors p-1.5 hover:bg-rose-50 rounded-lg"
-                        title="Hapus Seluruh Data Kelas & Siswa"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                  <CardHeader className="py-3 px-4 bg-slate-50 border-b border-slate-100 flex flex-row items-start justify-between sticky top-0 z-10">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-3">
+                        <CardTitle className="text-sm font-bold text-slate-800">{className}</CardTitle>
+                        <button 
+                          onClick={() => handleDeleteClass(className)}
+                          className="text-rose-300 hover:text-rose-600 transition-colors p-1.5 hover:bg-rose-50 rounded-lg"
+                          title="Hapus Seluruh Data Kelas & Siswa"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      {(classAccounts[className]?.homeroomTeacher || classAccounts[className]?.homeroomTeacherPhone) && (
+                        <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1.5 flex-wrap">
+                          {classAccounts[className]?.homeroomTeacher && (
+                            <span className="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded">Wali: {classAccounts[className].homeroomTeacher}</span>
+                          )}
+                          {classAccounts[className]?.homeroomTeacherPhone && (
+                            <a 
+                              href={`https://wa.me/${classAccounts[className].homeroomTeacherPhone.replace(/\D/g, '')}`}
+                              target="_blank" 
+                              rel="noreferrer"
+                              className="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded hover:bg-emerald-100 transition-colors flex items-center gap-1"
+                            >
+                              WA: {classAccounts[className].homeroomTeacherPhone}
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div className="bg-white border border-slate-200 text-slate-600 text-[11px] font-bold px-2 py-0.5 rounded-md shadow-sm">
+                    <div className="bg-white border border-slate-200 text-slate-600 text-[11px] font-bold px-2 py-0.5 rounded-md shadow-sm shrink-0">
                       {students.length}
                     </div>
                   </CardHeader>
