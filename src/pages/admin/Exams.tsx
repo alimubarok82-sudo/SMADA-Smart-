@@ -278,10 +278,14 @@ export default function Exams() {
 
   const handleUpdateExamData = async () => {
     if (!editingExam || !editingExam.title) return;
-    const isColumnUsed = exams.some(e => e.id !== editingExam.id && e.columnNumber === editingExam.columnNumber);
-    if (isColumnUsed) {
-      alert(`Kolom Leger ${editingExam.columnNumber} sudah digunakan oleh ujian lain. Silakan pilih kolom yang belum digunakan.`);
-      return;
+    const originalExam = exams.find(e => e.id === editingExam.id);
+    const isColumnChanged = originalExam && originalExam.columnNumber !== editingExam.columnNumber;
+    if (isColumnChanged) {
+      const isColumnUsed = exams.some(e => e.id !== editingExam.id && e.columnNumber === editingExam.columnNumber);
+      if (isColumnUsed) {
+        alert(`Kolom Leger ${editingExam.columnNumber} sudah digunakan oleh ujian lain. Silakan pilih kolom yang belum digunakan.`);
+        return;
+      }
     }
     try {
       const { id, ...data } = editingExam;
@@ -688,7 +692,7 @@ export default function Exams() {
                           const isUsed = exams.some(e => e.columnNumber === col);
                           return (
                             <option key={col} value={col} disabled={isUsed}>
-                              Kolom {col} {isUsed ? '(Sudah Digunakan)' : ''}
+                              Kolom {col} {isUsed ? '(Digunakan Ujian Lain)' : ''}
                             </option>
                           );
                         })}
@@ -1060,7 +1064,7 @@ export default function Exams() {
                           const isUsed = exams.some(e => e.id !== editingExam.id && e.columnNumber === col);
                           return (
                             <option key={col} value={col} disabled={isUsed}>
-                              Kolom {col} {isUsed ? '(Sudah Digunakan)' : ''}
+                              Kolom {col} {isUsed ? '(Digunakan Ujian Lain)' : ''}
                             </option>
                           );
                         })}
