@@ -28,6 +28,7 @@ interface Exam {
   targetClass?: string;
   targetClasses?: string[];
   questions?: Question[];
+  shuffleQuestions?: boolean;
 }
 
 export default function Exams() {
@@ -53,7 +54,8 @@ export default function Exams() {
     columnNumber: 1,
     category: 'formatif' as const,
     targetClasses: [] as string[],
-    questions: [] as any[]
+    questions: [] as any[],
+    shuffleQuestions: false
   });
   const [editingExam, setEditingExam] = useState<any>(null);
   const [classes, setClasses] = useState<string[]>([]);
@@ -248,7 +250,8 @@ export default function Exams() {
         category: newExam.category,
         targetClasses: newExam.targetClasses,
         questions: newExam.questions,
-        totalQuestions: newExam.questions.length
+        totalQuestions: newExam.questions.length,
+        shuffleQuestions: newExam.shuffleQuestions
       };
       const docRef = await addDoc(collection(db, 'exams'), examData);
       setExams([{ id: docRef.id, ...examData } as any, ...exams]);
@@ -259,7 +262,8 @@ export default function Exams() {
         columnNumber: 1, 
         category: 'formatif',
         targetClasses: classes[0] ? [classes[0]] : [],
-        questions: []
+        questions: [],
+        shuffleQuestions: false
       });
       setShowCreateModal(false);
     } catch (error) {
@@ -653,6 +657,29 @@ export default function Exams() {
                         ))}
                       </select>
                     </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Pengaturan Soal</label>
+                      <label className="flex items-center gap-3 cursor-pointer p-3 bg-slate-50 rounded-xl border border-slate-200 hover:border-indigo-300 transition-colors">
+                        <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${
+                          newExam.shuffleQuestions 
+                            ? 'bg-indigo-600 border-indigo-600' 
+                            : 'bg-white border border-slate-300'
+                        }`}>
+                          {newExam.shuffleQuestions && <Check size={12} className="text-white" />}
+                          <input 
+                            type="checkbox"
+                            className="hidden"
+                            checked={newExam.shuffleQuestions || false}
+                            onChange={(e) => setNewExam({ ...newExam, shuffleQuestions: e.target.checked })}
+                          />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-slate-700">Acak Urutan Soal</span>
+                          <span className="text-[10px] text-slate-500">Soal akan diacak untuk setiap siswa</span>
+                        </div>
+                      </label>
+                    </div>
                   </div>
 
                   {/* AI Generator Section */}
@@ -995,6 +1022,29 @@ export default function Exams() {
                           <option key={i+1} value={i+1}>Kolom {i+1}</option>
                         ))}
                       </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Pengaturan Soal</label>
+                      <label className="flex items-center gap-3 cursor-pointer p-3 bg-slate-50 rounded-xl border border-slate-200 hover:border-indigo-300 transition-colors">
+                        <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${
+                          editingExam.shuffleQuestions 
+                            ? 'bg-indigo-600 border-indigo-600' 
+                            : 'bg-white border border-slate-300'
+                        }`}>
+                          {editingExam.shuffleQuestions && <Check size={12} className="text-white" />}
+                          <input 
+                            type="checkbox"
+                            className="hidden"
+                            checked={editingExam.shuffleQuestions || false}
+                            onChange={(e) => setEditingExam({ ...editingExam, shuffleQuestions: e.target.checked })}
+                          />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-slate-700">Acak Urutan Soal</span>
+                          <span className="text-[10px] text-slate-500">Soal akan diacak untuk setiap siswa</span>
+                        </div>
+                      </label>
                     </div>
                   </div>
 

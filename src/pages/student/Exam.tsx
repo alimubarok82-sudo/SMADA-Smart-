@@ -115,7 +115,16 @@ export default function ExamPage() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setExamMetadata(data);
-        setQuestions(data.questions || []);
+        let fetchedQuestions = data.questions || [];
+        if (data.shuffleQuestions) {
+          const shuffled = [...fetchedQuestions];
+          for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+          fetchedQuestions = shuffled;
+        }
+        setQuestions(fetchedQuestions);
         
         // Set duration from metadata if available
         if (data.duration) {
@@ -198,6 +207,7 @@ export default function ExamPage() {
         correctCount,
         totalQuestions,
         answers,
+        questions, // Save the questions (potentially shuffled)
         violations: vCount,
         timestamp: serverTimestamp(),
         classId: (user as any).classId || 'Unknown',

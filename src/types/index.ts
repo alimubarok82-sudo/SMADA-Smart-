@@ -19,6 +19,7 @@ export interface Exam {
   kkm: number;
   date: string;
   status: 'published' | 'draft';
+  shuffleQuestions?: boolean;
 }
 
 export interface AttendanceRecord {
