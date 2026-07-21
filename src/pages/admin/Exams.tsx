@@ -238,6 +238,11 @@ export default function Exams() {
       alert("Harap tambahkan minimal satu soal");
       return;
     }
+    const isColumnUsed = exams.some(e => e.columnNumber === newExam.columnNumber);
+    if (isColumnUsed) {
+      alert(`Kolom Leger ${newExam.columnNumber} sudah digunakan oleh ujian lain. Silakan pilih kolom yang belum digunakan.`);
+      return;
+    }
     try {
       const examData = {
         title: newExam.title,
@@ -273,6 +278,11 @@ export default function Exams() {
 
   const handleUpdateExamData = async () => {
     if (!editingExam || !editingExam.title) return;
+    const isColumnUsed = exams.some(e => e.id !== editingExam.id && e.columnNumber === editingExam.columnNumber);
+    if (isColumnUsed) {
+      alert(`Kolom Leger ${editingExam.columnNumber} sudah digunakan oleh ujian lain. Silakan pilih kolom yang belum digunakan.`);
+      return;
+    }
     try {
       const { id, ...data } = editingExam;
       await updateDoc(doc(db, 'exams', id), {
@@ -327,6 +337,27 @@ export default function Exams() {
     e.subject.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleOpenCreateModal = () => {
+    let firstAvailableCol = 1;
+    for (let i = 1; i <= 15; i++) {
+      if (!exams.some(e => e.columnNumber === i)) {
+        firstAvailableCol = i;
+        break;
+      }
+    }
+    setNewExam({
+      title: '',
+      subject: 'Informatika',
+      duration: '30 Menit',
+      columnNumber: firstAvailableCol,
+      category: 'formatif',
+      targetClasses: classes[0] ? [classes[0]] : [],
+      questions: [],
+      shuffleQuestions: false
+    });
+    setShowCreateModal(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -335,7 +366,7 @@ export default function Exams() {
           <p className="text-slate-500 text-sm">Kelola bank soal dan jadwal ujian sekolah</p>
         </div>
         <Button 
-          onClick={() => setShowCreateModal(true)}
+          onClick={handleOpenCreateModal}
           className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl px-6 h-12 font-bold shadow-lg shadow-indigo-100"
         >
           <Plus className="w-5 h-5 mr-2" /> Buat Ujian Baru
@@ -646,15 +677,21 @@ export default function Exams() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kolom Leger</label>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Kolom Leger</label>
                       <select 
                         className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                         value={newExam.columnNumber}
                         onChange={e => setNewExam({ ...newExam, columnNumber: parseInt(e.target.value) })}
                       >
-                        {[...Array(15)].map((_, i) => (
-                          <option key={i+1} value={i+1}>Kolom {i+1}</option>
-                        ))}
+                        {[...Array(15)].map((_, i) => {
+                          const col = i + 1;
+                          const isUsed = exams.some(e => e.columnNumber === col);
+                          return (
+                            <option key={col} value={col} disabled={isUsed}>
+                              Kolom {col} {isUsed ? '(Sudah Digunakan)' : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
 
@@ -1012,15 +1049,21 @@ export default function Exams() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kolom Leger</label>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Kolom Leger</label>
                       <select 
                         className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                         value={editingExam.columnNumber}
                         onChange={e => setEditingExam({ ...editingExam, columnNumber: parseInt(e.target.value) })}
                       >
-                        {[...Array(15)].map((_, i) => (
-                          <option key={i+1} value={i+1}>Kolom {i+1}</option>
-                        ))}
+                        {[...Array(15)].map((_, i) => {
+                          const col = i + 1;
+                          const isUsed = exams.some(e => e.id !== editingExam.id && e.columnNumber === col);
+                          return (
+                            <option key={col} value={col} disabled={isUsed}>
+                              Kolom {col} {isUsed ? '(Sudah Digunakan)' : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
 
