@@ -178,7 +178,18 @@ export default function MaterialsManager() {
 
   const filteredMaterials = filterClass === 'all' 
     ? materials 
-    : materials.filter(m => m.targetClasses.includes(filterClass));
+    : materials.filter(m => {
+        if (filterClass === 'Kelas X') {
+          return m.targetClasses.some(c => c.startsWith('X') && !c.startsWith('XI') && !c.startsWith('XII'));
+        }
+        if (filterClass === 'Kelas XI') {
+          return m.targetClasses.some(c => c.startsWith('XI') && !c.startsWith('XII'));
+        }
+        if (filterClass === 'Kelas XII') {
+          return m.targetClasses.some(c => c.startsWith('XII'));
+        }
+        return m.targetClasses.includes(filterClass);
+      });
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-6xl mx-auto">
@@ -344,7 +355,12 @@ export default function MaterialsManager() {
                   onChange={(e) => setFilterClass(e.target.value)}
                 >
                   <option value="all">Semua Kelas</option>
-                  {allClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                  <option value="Kelas X">Kelas X</option>
+                  <option value="Kelas XI">Kelas XI</option>
+                  <option value="Kelas XII">Kelas XII</option>
+                  <optgroup label="Spesifik Kelas">
+                    {allClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                  </optgroup>
                 </select>
               </div>
             </CardHeader>
