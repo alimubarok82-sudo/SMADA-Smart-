@@ -188,10 +188,25 @@ export default function StudentDashboard() {
 
     setIsSubmitting(true);
     try {
+      const actualTitle = submissionTitle || 'Tugas Informatika';
+      
+      const q = query(
+        collection(db, 'submissions'),
+        where('studentId', '==', user.uid),
+        where('title', '==', actualTitle)
+      );
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        alert(`Anda sudah mengirim tugas dengan judul "${actualTitle}".`);
+        setIsSubmitting(false);
+        return;
+      }
+
       await addDoc(collection(db, 'submissions'), {
         studentId: user.uid,
         studentName: user.displayName || 'Anonim',
-        title: submissionTitle || 'Tugas Informatika',
+        title: actualTitle,
         type: submissionType,
         content: submissionValue,
         timestamp: serverTimestamp(),
