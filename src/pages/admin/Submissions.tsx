@@ -174,10 +174,20 @@ export default function Submissions() {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            onClick={() => window.open(sub.content, '_blank')}
+                            onClick={() => {
+                              if (sub.type === 'image' && sub.content.startsWith('data:image')) {
+                                const win = window.open();
+                                if (win) {
+                                  win.document.write(`<html><body style="margin:0;display:flex;justify-content:center;align-items:center;background:#0f172a;"><img src="${sub.content}" style="max-width:100%;max-height:100vh;object-fit:contain;" /></body></html>`);
+                                }
+                              } else {
+                                window.open(sub.content, '_blank');
+                              }
+                            }}
                             className="h-8 rounded-lg border-rose-200 text-rose-500 bg-white hover:bg-rose-50 font-bold text-[10px] px-3 shadow-sm transition-all"
                           >
-                            <LinkIcon size={12} className="mr-2" /> Buka Link
+                            {sub.type === 'image' ? <ImageIcon size={12} className="mr-2" /> : <LinkIcon size={12} className="mr-2" />}
+                            {sub.type === 'image' ? 'Buka Gambar' : 'Buka Link'}
                           </Button>
                           <Button 
                             variant="ghost" 

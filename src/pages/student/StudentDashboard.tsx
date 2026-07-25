@@ -134,6 +134,54 @@ export default function StudentDashboard() {
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    if (submissionType !== 'image') return;
+    
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (!file) continue;
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1200;
+            const MAX_HEIGHT = 1200;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height *= MAX_WIDTH / width;
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width *= MAX_HEIGHT / height;
+                height = MAX_HEIGHT;
+              }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
+            
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+            setSubmissionValue(dataUrl);
+          };
+          img.src = event.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+        break; // Only handle the first image
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!submissionValue.trim() || !user) return;
@@ -243,15 +291,21 @@ export default function StudentDashboard() {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
-                  {submissionType === 'link' ? 'URL Tugas (GitHub/Drive/Grup)' : 'URL Gambar Jawaban'}
+                  {submissionType === 'link' ? 'URL Tugas (GitHub/Drive/Grup)' : 'URL Gambar (Bisa Paste Screenshot)'}
                 </label>
                 <input
                   type="text"
-                  placeholder={submissionType === 'link' ? 'https://...' : 'Paste URL gambar...'}
+                  placeholder={submissionType === 'link' ? 'https://...' : 'Paste URL atau tekan Ctrl+V / Cmd+V untuk paste gambar...'}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                   value={submissionValue}
                   onChange={(e) => setSubmissionValue(e.target.value)}
+                  onPaste={handlePaste}
                 />
+                {submissionType === 'image' && submissionValue.startsWith('data:image') && (
+                  <div className="mt-2 rounded-xl overflow-hidden border border-slate-200">
+                    <img src={submissionValue} alt="Preview" className="w-full h-auto object-contain max-h-48" />
+                  </div>
+                )}
               </div>
 
               <button
