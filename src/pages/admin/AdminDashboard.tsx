@@ -156,9 +156,9 @@ export default function AdminDashboard() {
       const attSnap = await getDocs(query(collection(db, 'attendance'), where('date', '==', today), where('status', '==', 'hadir')));
       const attendanceToday = attSnap.size;
 
-      // 5. Avg Grade
-      const resultsSnap = await getDocs(collection(db, 'exam_results'));
-      const submissionsSnap = await getDocs(query(collection(db, 'submissions'), where('status', '==', 'graded')));
+      // 5. Avg Grade (Sample recent for performance)
+      const resultsSnap = await getDocs(query(collection(db, 'exam_results'), limit(50)));
+      const submissionsSnap = await getDocs(query(collection(db, 'submissions'), where('status', '==', 'graded'), limit(50)));
       
       let totalPoints = 0;
       let totalCount = 0;

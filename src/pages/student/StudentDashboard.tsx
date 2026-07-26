@@ -40,11 +40,11 @@ export default function StudentDashboard() {
     setLoading(true);
     try {
       // 1. Fetch Active Exams
-      const examsSnap = await getDocs(query(collection(db, 'exams'), where('status', '==', 'active')));
+      const examsSnap = await getDocs(query(collection(db, 'exams'), where('status', '==', 'active'), limit(20)));
       const examsList = examsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       // 2. Fetch Completed Exams (Results)
-      const resultsSnap = await getDocs(query(collection(db, 'exam_results'), where('studentId', '==', user.uid)));
+      const resultsSnap = await getDocs(query(collection(db, 'exam_results'), where('studentId', '==', user.uid), limit(50)));
       const completedExamsCount = resultsSnap.size;
       const completedExamIds = resultsSnap.docs.map(doc => doc.data().examId);
 
@@ -72,7 +72,7 @@ export default function StudentDashboard() {
       const activeExamsCount = filteredExams.length;
 
       // 3. Calculate Average Grade
-      const submissionsSnap = await getDocs(query(collection(db, 'submissions'), where('studentId', '==', user.uid), where('status', '==', 'graded')));
+      const submissionsSnap = await getDocs(query(collection(db, 'submissions'), where('studentId', '==', user.uid), where('status', '==', 'graded'), limit(50)));
       
       let totalPoints = 0;
       let totalCount = 0;
@@ -101,7 +101,7 @@ export default function StudentDashboard() {
       const hasCheckedIn = !attSnap.empty;
 
       // 5. Fetch Active Materials (Daftar Isi)
-      const materialsSnap = await getDocs(query(collection(db, 'materials'), where('isActive', '==', true), orderBy('createdAt', 'desc')));
+      const materialsSnap = await getDocs(query(collection(db, 'materials'), where('isActive', '==', true), orderBy('createdAt', 'desc'), limit(20)));
       const materialsList = materialsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
       const filteredMaterials = materialsList.filter(m => {
@@ -193,11 +193,14 @@ export default function StudentDashboard() {
       const q = query(
         collection(db, 'submissions'),
         where('studentId', '==', user.uid),
-        where('title', '==', actualTitle)
+        orderBy('timestamp', 'desc'),
+        limit(20)
       );
       const querySnapshot = await getDocs(q);
       
-      if (!querySnapshot.empty) {
+      const hasDuplicate = querySnapshot.docs.some(doc => doc.data().title === actualTitle);
+      
+      if (hasDuplicate) {
         alert(`Anda sudah mengirim tugas dengan judul "${actualTitle}".`);
         setIsSubmitting(false);
         return;

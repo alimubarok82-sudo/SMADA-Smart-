@@ -310,11 +310,11 @@ export default function Grades() {
       studentList = studentList.filter(s => s.classId === selectedClass);
 
       // 2. Fetch Exam Results (Formatif)
-      const resultsSnap = await getDocs(collection(db, 'exam_results'));
+      const resultsSnap = await getDocs(query(collection(db, 'exam_results'), where('classId', '==', selectedClass)));
       const resultsData = resultsSnap.docs.map(doc => doc.data());
 
       // 3. Fetch Submissions (Sumatif)
-      const submissionsSnap = await getDocs(collection(db, 'submissions'));
+      const submissionsSnap = await getDocs(query(collection(db, 'submissions'), where('classId', '==', selectedClass)));
       const submissionsData = submissionsSnap.docs.map(doc => doc.data());
 
       // Deduplicate student list by name and class

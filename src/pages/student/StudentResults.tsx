@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardContent } from '../../components/ui/card';
 import { CheckCircle, Clock, Trophy, Loader2, Search, FileText } from 'lucide-react';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { motion } from 'motion/react';
 
@@ -25,7 +25,8 @@ export default function StudentResults() {
       const q = query(
         collection(db, 'exam_results'), 
         where('studentId', '==', user.uid),
-        orderBy('timestamp', 'desc')
+        orderBy('timestamp', 'desc'),
+        limit(20)
       );
       const snap = await getDocs(q);
       const examResults = snap.docs.map(doc => ({ id: doc.id, itemType: 'exam', ...doc.data() }));
@@ -33,12 +34,13 @@ export default function StudentResults() {
       const qSub = query(
         collection(db, 'submissions'),
         where('studentId', '==', user.uid),
-        orderBy('timestamp', 'desc')
+        orderBy('timestamp', 'desc'),
+        limit(20)
       );
       const subSnap = await getDocs(qSub);
       const subResults = subSnap.docs.map(doc => ({ id: doc.id, itemType: 'task', ...doc.data() }));
 
-      const combined = [...examResults, ...subResults].sort((a, b) => {
+      const combined = [...examResults, ...subResults].sort((a: any, b: any) => {
         const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
         const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
         return timeB - timeA;

@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/button';
 import { Search, Filter, ExternalLink, Image as ImageIcon, Link as LinkIcon, CheckCircle2, Clock, Trash2, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db } from '../../lib/firebase';
-import { collection, getDocs, query, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, deleteDoc, doc, updateDoc, limit } from 'firebase/firestore';
 
 interface Submission {
   id: string;
@@ -34,7 +34,7 @@ export default function Submissions() {
 
   const fetchSubmissions = async () => {
     try {
-      const q = query(collection(db, 'submissions'), orderBy('timestamp', 'desc'));
+      const q = query(collection(db, 'submissions'), orderBy('timestamp', 'desc'), limit(100));
       const querySnapshot = await getDocs(q);
       const data = querySnapshot.docs.map(doc => ({
         id: doc.id,

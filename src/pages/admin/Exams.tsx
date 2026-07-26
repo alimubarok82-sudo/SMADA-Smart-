@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, Search, X, Check, Trash2, XCircle, Sparkles, Loader2, Image as ImageIcon, Upload, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where, limit } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { formatDate } from '../../lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -173,9 +173,9 @@ export default function Exams() {
         uniqueStudentNames.add(`${data.displayName}-${data.classId}`);
       });
       
-      // 2. Avg Grade
-      const resultsSnap = await getDocs(collection(db, 'exam_results'));
-      const submissionsSnap = await getDocs(query(collection(db, 'submissions'), where('status', '==', 'graded')));
+      // 2. Avg Grade (Sample recent for performance)
+      const resultsSnap = await getDocs(query(collection(db, 'exam_results'), limit(50)));
+      const submissionsSnap = await getDocs(query(collection(db, 'submissions'), where('status', '==', 'graded'), limit(50)));
       
       let totalPoints = 0;
       let totalCount = 0;

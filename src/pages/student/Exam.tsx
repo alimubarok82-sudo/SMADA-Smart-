@@ -5,7 +5,7 @@ import { Card, CardContent } from '../../components/ui/card';
 import { CheckCircle, ChevronLeft, ChevronRight, Clock, Maximize, Minimize, Loader2, BarChart3, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../../lib/firebase';
-import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc, getDocs, query, where, limit } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 
 const mockQuestions = [

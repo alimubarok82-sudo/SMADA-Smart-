@@ -222,7 +222,17 @@ export default function ClassAccounts() {
   );
 }
 
-function AccountRow({ 
+type AccountRowProps = {
+  account: ClassAccount;
+  index: number;
+  isEditing: boolean;
+  onEdit: () => void;
+  onCancel: () => void;
+  onSave: (id: string, email: string, pwd?: string, teacher?: string, teacherPhone?: string) => void | Promise<void>;
+  onDelete: (id: string) => void | Promise<void>;
+};
+
+const AccountRow: React.FC<AccountRowProps> = ({ 
   account, 
   index, 
   isEditing, 
@@ -230,15 +240,7 @@ function AccountRow({
   onCancel, 
   onSave, 
   onDelete 
-}: { 
-  account: ClassAccount, 
-  index: number, 
-  isEditing: boolean, 
-  onEdit: () => void, 
-  onCancel: () => void, 
-  onSave: (id: string, email: string, pwd?: string, teacher?: string, teacherPhone?: string) => void, 
-  onDelete: (id: string) => void 
-}) {
+}) => {
   const [editEmail, setEditEmail] = useState(account.email);
   const [editPwd, setEditPwd] = useState(account.password || '');
   const [editTeacher, setEditTeacher] = useState(account.homeroomTeacher || '');
