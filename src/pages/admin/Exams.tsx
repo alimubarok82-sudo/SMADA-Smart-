@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, Search, X, Check, Trash2, XCircle, Sparkles, Loader2, Image as ImageIcon, Upload, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where, limit, getCountFromServer } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where, limit, getCountFromServer, getAggregateFromServer, average } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { formatDate } from '../../lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -163,24 +163,17 @@ export default function Exams() {
       const studentsCountSnap = await getCountFromServer(query(collection(db, 'users'), where('role', '==', 'siswa')));
       const totalStudents = studentsCountSnap.data().count;
       
-      // 2. Avg Grade (Sample recent for performance)
-      const resultsSnap = await getDocs(query(collection(db, 'exam_results'), limit(50)));
-      const submissionsSnap = await getDocs(query(collection(db, 'submissions'), where('status', '==', 'graded'), limit(50)));
-      
-      let totalPoints = 0;
+      let avgGrade = "0";
       let totalCount = 0;
-
-      resultsSnap.docs.forEach(doc => {
-        totalPoints += doc.data().score || 0;
-        totalCount++;
-      });
-
-      submissionsSnap.docs.forEach(doc => {
-        totalPoints += doc.data().grade || 0;
-        totalCount++;
-      });
-
-      const avgGrade = totalCount > 0 ? (totalPoints / totalCount).toFixed(1) : '0';
+      try {
+        const resultsAgg = await getAggregateFromServer(collection(db, "exam_results"), { avgScore: average("score") });
+        const submissionsAgg = await getAggregateFromServer(query(collection(db, "submissions"), where("status", "==", "graded")), { avgGrade: average("grade") });
+        const rAvg = resultsAgg.data().avgScore || 0;
+        const sAvg = submissionsAgg.data().avgGrade || 0;
+        const num = (rAvg + sAvg) / (rAvg > 0 && sAvg > 0 ? 2 : 1);
+        avgGrade = num.toFixed(1);
+        totalCount = 100; // Mock count since we aggregate
+      } catch (e) { console.error("Aggregation failed", e); }
 
       setStats({
         activeStudents: totalStudents,

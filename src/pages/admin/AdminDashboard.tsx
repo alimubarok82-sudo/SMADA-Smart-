@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { BookOpen, CheckCircle, FileText, Users, GraduationCap, Loader2, Search } from 'lucide-react';
 import { motion } from 'motion/react';
-import { collection, getDocs, query, where, orderBy, limit, onSnapshot, deleteDoc, doc as firestoreDoc, getCountFromServer } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit, deleteDoc, doc as firestoreDoc, getCountFromServer, getAggregateFromServer, average } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Trash2, Edit2, RotateCcw, ShieldAlert, AlertCircle } from 'lucide-react';
 import { formatDate } from '../../lib/utils';
@@ -89,15 +89,20 @@ export default function AdminDashboard() {
       );
     }
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const results = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setRecentResults(results);
-    });
-
-    return () => unsubscribe();
+    const fetchRecentResults = async () => {
+      try {
+        const snapshot = await getDocs(q);
+        const results = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setRecentResults(results);
+      } catch (error) {
+        console.error("Error fetching results:", error);
+      }
+    };
+    
+    fetchRecentResults();
   }, [selectedClass, selectedExam]);
 
   const filteredResults = recentResults.filter(r => 
@@ -132,25 +137,14 @@ export default function AdminDashboard() {
       const today = formatDate();
       const attCountSnap = await getCountFromServer(query(collection(db, 'attendance'), where('date', '==', today), where('status', '==', 'hadir')));
       const attendanceToday = attCountSnap.data().count;
-
-      // 5. Avg Grade (Sample recent for performance)
-      const resultsSnap = await getDocs(query(collection(db, 'exam_results'), limit(50)));
-      const submissionsSnap = await getDocs(query(collection(db, 'submissions'), where('status', '==', 'graded'), limit(50)));
-      
-      let totalPoints = 0;
-      let totalCount = 0;
-
-      resultsSnap.docs.forEach(doc => {
-        totalPoints += doc.data().score || 0;
-        totalCount++;
-      });
-
-      submissionsSnap.docs.forEach(doc => {
-        totalPoints += doc.data().grade || 0;
-        totalCount++;
-      });
-
-      const avgGrade = totalCount > 0 ? Math.round(totalPoints / totalCount) : 0;
+      let avgGrade = 0;
+      try {
+        const resultsAgg = await getAggregateFromServer(collection(db, "exam_results"), { avgScore: average("score") });
+        const submissionsAgg = await getAggregateFromServer(query(collection(db, "submissions"), where("status", "==", "graded")), { avgGrade: average("grade") });
+        const rAvg = resultsAgg.data().avgScore || 0;
+        const sAvg = submissionsAgg.data().avgGrade || 0;
+        avgGrade = Math.round((rAvg + sAvg) / (rAvg > 0 && sAvg > 0 ? 2 : 1));
+      } catch (e) { console.error("Aggregation failed", e); }
 
       setDashboardStats({
         totalStudents,

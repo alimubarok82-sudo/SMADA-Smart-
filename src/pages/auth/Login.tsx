@@ -15,6 +15,16 @@ export default function Login() {
   const { loginDemo, user } = useAuth();
   const [mode, setMode] = useState<'siswa' | 'guru'>('siswa');
 
+  // Shared State
+  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Siswa State
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedName, setSelectedName] = useState('');
+
   // Firestore Data
   const [dbClasses, setDbClasses] = useState<string[]>([]);
   const [dbStudents, setDbStudents] = useState<Record<string, { id: string, name: string, password?: string }[]>>({});
@@ -80,16 +90,6 @@ export default function Login() {
       navigate('/dashboard', { replace: true });
     }
   }, [user, navigate]);
-  
-  // Siswa State
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedName, setSelectedName] = useState('');
-  
-  // Shared State
-  const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const handleStudentLogin = async (e: React.FormEvent) => {
     e.preventDefault();
