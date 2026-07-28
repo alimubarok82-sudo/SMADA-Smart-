@@ -28,14 +28,8 @@ export default function Attendance() {
         const snap = await getDocs(query(collection(db, 'classes'), orderBy('name')));
         const classList = snap.docs.map(doc => doc.data().name).filter(Boolean);
         
-        const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'siswa')));
-        const classesFromStudents = new Set<string>();
-        studentsSnap.docs.forEach(d => {
-          const cId = d.data().classId;
-          if (cId) classesFromStudents.add(cId);
-        });
         
-        const combined = Array.from(new Set([...classList, ...Array.from(classesFromStudents)]))
+        const combined = Array.from(new Set([...classList]))
           .filter(Boolean)
           .sort();
 

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { BookOpen, CheckCircle, FileText, Users, GraduationCap, Loader2, Search } from 'lucide-react';
 import { motion } from 'motion/react';
-import { collection, getDocs, query, where, orderBy, limit, onSnapshot, deleteDoc, doc as firestoreDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit, onSnapshot, deleteDoc, doc as firestoreDoc, getCountFromServer } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Trash2, Edit2, RotateCcw, ShieldAlert, AlertCircle } from 'lucide-react';
 import { formatDate } from '../../lib/utils';
@@ -37,19 +37,6 @@ export default function AdminDashboard() {
     fetchDashboardStats();
     
     // Listen to today's attendance real-time
-    const today = formatDate();
-    const attQ = query(
-      collection(db, 'attendance'), 
-      where('date', '==', today), 
-      where('status', '==', 'hadir')
-    );
-    
-    const unsubscribeAtt = onSnapshot(attQ, (snapshot) => {
-      setDashboardStats(prev => ({
-        ...prev,
-        attendanceToday: snapshot.size
-      }));
-    });
 
     // Ambil daftar kelas secara menyeluruh
     const fetchClasses = async () => {
@@ -74,7 +61,7 @@ export default function AdminDashboard() {
     };
     fetchClasses();
 
-    return () => unsubscribeAtt();
+    return () => {};
   }, []);
 
   // Update listener real-time berdasarkan pilihan kelas dan ujian
@@ -129,32 +116,22 @@ export default function AdminDashboard() {
   const fetchDashboardStats = async () => {
     setLoading(true);
     try {
-      // 1. Total Students (Deduplicated by name and class)
-      const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'siswa')));
-      const uniqueStudentNames = new Set();
-      studentsSnap.docs.forEach(d => {
-        const data = d.data();
-        uniqueStudentNames.add(`${data.displayName}-${data.classId}`);
-      });
-      const totalStudents = uniqueStudentNames.size;
+      // 1. Total Students
+      const studentsCountSnap = await getCountFromServer(query(collection(db, 'users'), where('role', '==', 'siswa')));
+      const totalStudents = studentsCountSnap.data().count;
 
       // 2. Active Exams
-      const examsSnap = await getDocs(query(collection(db, 'exams'), where('status', '==', 'active')));
-      const activeExams = examsSnap.size;
+      const examsCountSnap = await getCountFromServer(query(collection(db, 'exams'), where('status', '==', 'active')));
+      const activeExams = examsCountSnap.data().count;
 
-      // 3. Total Classes (From collection and students)
-      const classesSnap = await getDocs(collection(db, 'classes'));
-      const classNames = new Set(classesSnap.docs.map(d => d.data().name));
-      studentsSnap.docs.forEach(d => {
-        const cId = d.data().classId;
-        if (cId) classNames.add(cId);
-      });
-      const totalClasses = classNames.size;
+      // 3. Total Classes (Just from collection to save reads)
+      const classesCountSnap = await getCountFromServer(collection(db, 'classes'));
+      const totalClasses = classesCountSnap.data().count || 10; // Fallback or approx if needed, but getCountFromServer is exact.
 
       // 4. Attendance Today
       const today = formatDate();
-      const attSnap = await getDocs(query(collection(db, 'attendance'), where('date', '==', today), where('status', '==', 'hadir')));
-      const attendanceToday = attSnap.size;
+      const attCountSnap = await getCountFromServer(query(collection(db, 'attendance'), where('date', '==', today), where('status', '==', 'hadir')));
+      const attendanceToday = attCountSnap.data().count;
 
       // 5. Avg Grade (Sample recent for performance)
       const resultsSnap = await getDocs(query(collection(db, 'exam_results'), limit(50)));

@@ -1,0 +1,39 @@
+  const fetchInitialData = async () => {
+    try {
+      // Fetch Classes - try without orderBy first to avoid index errors
+      const classesSnap = await getDocs(collection(db, 'classes'));
+      const classList = classesSnap.docs.map(d => d.data().name).filter(Boolean).sort();
+      
+      // Fetch all students to group them
+      // In a real app we'd query by role, but for robustness we fetch and filter
+      const studentsSnap = await getDocs(collection(db, 'users'));
+      const grouped: Record<string, { id: string, name: string, password?: string }[]> = {};
+      
+      studentsSnap.docs.forEach(d => {
+        const data = d.data();
+        if (data.role !== 'siswa') return;
+        
+        const cId = data.classId || 'Unassigned';
+        if (!grouped[cId]) grouped[cId] = [];
+        grouped[cId].push({ 
+          id: d.id, 
+          name: data.displayName || 'Unknown',
+          password: data.password
+        });
+      });
+
+      // Sort students in each class
+      Object.keys(grouped).forEach(c => {
+        grouped[c].sort((a, b) => a.name.localeCompare(b.name));
+      });
+
+      // Combine classes from collection and from student records
+      const classesFromStudents = Object.keys(grouped);
+      const combinedClasses = Array.from(new Set([...classList, ...classesFromStudents]))
+        .filter(Boolean)
+        .sort();
+
+      setDbClasses(combinedClasses);
+      setDbStudents(grouped);
+      
+      // Select first class if current selection is invalid or empty

@@ -1,0 +1,56 @@
+218:  const handleDeleteClass = async (className: string) => {
+219-    if (!confirm(`Hapus seluruh data kelas "${className}"? Tindakan ini akan menghapus permanen:\n1. Seluruh data siswa di kelas ini\n2. Seluruh riwayat presensi siswa tersebut\n3. Seluruh nilai ujian siswa tersebut\n\nPastikan Anda sudah membackup data jika diperlukan.`)) return;
+220-    
+221-    setLoading(true);
+222-    try {
+223-      const batch = writeBatch(db);
+224-      
+225-      // Helper function to normalize text for robust comparison
+226-      // Removes spaces, hyphens, and dots to treat "XI-F4", "XI.F4", and "XIF4" as same
+227-      const normalize = (s: string) => s?.trim().toUpperCase().replace(/[\s\-\.]/g, '') || '';
+228-      const targetNormalized = normalize(className);
+229-
+230-      // 1. Get all students and filter client-side
+231-      const studentsSnap = await getDocs(collection(db, 'users'));
+232-      const studentDocsToDelete = studentsSnap.docs.filter(d => normalize(d.data().classId) === targetNormalized);
+233-      const studentIdsToDelete = studentDocsToDelete.map(d => d.id);
+234-      
+235-      studentDocsToDelete.forEach(d => {
+236-        batch.delete(firestoreDoc(db, 'users', d.id));
+237-      });
+238-      
+239-      // 2. Get the class documents and filter
+240-      const classesSnap = await getDocs(collection(db, 'classes'));
+241-      const classDocsToDelete = classesSnap.docs.filter(d => normalize(d.data().name) === targetNormalized);
+242-      
+243-      classDocsToDelete.forEach(d => {
+244-        batch.delete(firestoreDoc(db, 'classes', d.id));
+245-      });
+246-
+247-      // 3. Cleanup related data (exam_results, attendance, submissions)
+248-      // We check BOTH classId AND studentId for maximum reliability
+249-      const collections = ['exam_results', 'attendance', 'submissions'];
+250-      for (const col of collections) {
+251-        const colSnap = await getDocs(collection(db, col));
+252-        const docsToDelete = colSnap.docs.filter(d => {
+253-          const data = d.data();
+254-          const matchesClass = normalize(data.classId) === targetNormalized;
+255-          const matchesStudent = data.studentId && studentIdsToDelete.includes(data.studentId);
+256-          return matchesClass || matchesStudent;
+257-        });
+258-        
+259-        docsToDelete.forEach(d => {
+260-          batch.delete(firestoreDoc(db, col, d.id));
+261-        });
+262-      }
+263-      
+264-      await batch.commit();
+265-      
+266-      // Refresh local state
+267-      await fetchClasses();
+268-      await fetchStudents();
+269-      
+270-      setUploadStatus({ 
+271-        success: true, 
+272-        message: `Database berhasil dibersihkan. Seluruh data terkait kelas "${className}" dan riwayat siswanya telah dihapus.` 
+273-      });

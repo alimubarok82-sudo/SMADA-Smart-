@@ -37,15 +37,8 @@ export default function StudentData() {
       const snap = await getDocs(q);
       const classList = snap.docs.map(doc => doc.data().name).filter(Boolean);
       
-      // Also check students for classes
-      const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'siswa')));
-      const classesFromStudents = new Set<string>();
-      studentsSnap.docs.forEach(d => {
-        const cId = d.data().classId;
-        if (cId) classesFromStudents.add(cId);
-      });
 
-      const combined = Array.from(new Set([...classList, ...Array.from(classesFromStudents)]))
+      const combined = Array.from(new Set([...classList]))
         .filter(Boolean)
         .sort();
       
@@ -229,41 +222,28 @@ export default function StudentData() {
     try {
       const batch = writeBatch(db);
       
-      // Helper function to normalize text for robust comparison
-      // Removes spaces, hyphens, and dots to treat "XI-F4", "XI.F4", and "XIF4" as same
       const normalize = (s: string) => s?.trim().toUpperCase().replace(/[\s\-\.]/g, '') || '';
       const targetNormalized = normalize(className);
 
-      // 1. Get all students and filter client-side
-      const studentsSnap = await getDocs(collection(db, 'users'));
-      const studentDocsToDelete = studentsSnap.docs.filter(d => normalize(d.data().classId) === targetNormalized);
-      const studentIdsToDelete = studentDocsToDelete.map(d => d.id);
+      // Get students for this class efficiently
+      const studentsSnap = await getDocs(query(collection(db, 'users'), where('classId', '==', className)));
+      const studentIdsToDelete = studentsSnap.docs.map(d => d.id);
       
-      studentDocsToDelete.forEach(d => {
+      studentsSnap.docs.forEach(d => {
         batch.delete(firestoreDoc(db, 'users', d.id));
       });
       
-      // 2. Get the class documents and filter
-      const classesSnap = await getDocs(collection(db, 'classes'));
-      const classDocsToDelete = classesSnap.docs.filter(d => normalize(d.data().name) === targetNormalized);
-      
-      classDocsToDelete.forEach(d => {
+      // Get the class document
+      const classesSnap = await getDocs(query(collection(db, 'classes'), where('name', '==', className)));
+      classesSnap.docs.forEach(d => {
         batch.delete(firestoreDoc(db, 'classes', d.id));
       });
 
-      // 3. Cleanup related data (exam_results, attendance, submissions)
-      // We check BOTH classId AND studentId for maximum reliability
+      // Cleanup related data
       const collections = ['exam_results', 'attendance', 'submissions'];
       for (const col of collections) {
-        const colSnap = await getDocs(collection(db, col));
-        const docsToDelete = colSnap.docs.filter(d => {
-          const data = d.data();
-          const matchesClass = normalize(data.classId) === targetNormalized;
-          const matchesStudent = data.studentId && studentIdsToDelete.includes(data.studentId);
-          return matchesClass || matchesStudent;
-        });
-        
-        docsToDelete.forEach(d => {
+        const colSnap = await getDocs(query(collection(db, col), where('classId', '==', className)));
+        colSnap.docs.forEach(d => {
           batch.delete(firestoreDoc(db, col, d.id));
         });
       }

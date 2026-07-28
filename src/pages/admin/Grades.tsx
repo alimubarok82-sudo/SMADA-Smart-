@@ -255,14 +255,8 @@ export default function Grades() {
       const classList = snap.docs.map(doc => doc.data().name).filter(Boolean);
       
       // 2. Fetch from students to find any other classes
-      const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'siswa')));
-      const classesFromStudents = new Set<string>();
-      studentsSnap.docs.forEach(d => {
-        const cId = d.data().classId;
-        if (cId) classesFromStudents.add(cId);
-      });
       
-      const combined = Array.from(new Set([...classList, ...Array.from(classesFromStudents)]))
+      const combined = Array.from(new Set([...classList]))
         .filter(Boolean)
         .sort();
 
@@ -296,37 +290,27 @@ export default function Grades() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Students
-      const studentsQuery = query(collection(db, 'users'), where('role', '==', 'siswa'));
+      // 1. Fetch Students for selected class
+      const studentsQuery = query(collection(db, 'users'), where('role', '==', 'siswa'), where('classId', '==', selectedClass));
       const studentsSnap = await getDocs(studentsQuery);
-      let studentList = studentsSnap.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().displayName || 'Anonim',
-        gender: (doc.data() as any).gender || 'L/P',
-        classId: (doc.data() as any).classId || 'Unknown'
-      }));
+      
+      const finalStudentList = studentsSnap.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.displayName || 'Unknown',
+          gender: data.gender || 'Laki-laki',
+          classId: data.classId
+        };
+      }).sort((a, b) => a.name.localeCompare(b.name));
 
-      // Filter by class locally for now or modify query if classId is reliable
-      studentList = studentList.filter(s => s.classId === selectedClass);
-
-      // 2. Fetch Exam Results (Formatif)
+      // 2. Fetch Formatif & SAS (exam_results)
       const resultsSnap = await getDocs(query(collection(db, 'exam_results'), where('classId', '==', selectedClass)));
-      const resultsData = resultsSnap.docs.map(doc => doc.data());
+      const resultsData = resultsSnap.docs.map(d => d.data());
 
-      // 3. Fetch Submissions (Sumatif)
+      // 3. Fetch Sumatif (submissions)
       const submissionsSnap = await getDocs(query(collection(db, 'submissions'), where('classId', '==', selectedClass)));
-      const submissionsData = submissionsSnap.docs.map(doc => doc.data());
-
-      // Deduplicate student list by name and class
-      const uniqueStudents: Record<string, any> = {};
-      studentList.forEach(s => {
-        const key = `${s.name}-${s.classId}`;
-        // Prefer record with Auth UID (id length usually > 20) over random firestore id
-        if (!uniqueStudents[key] || s.id.length > (uniqueStudents[key].id.length || 0)) {
-          uniqueStudents[key] = s;
-        }
-      });
-      const finalStudentList = Object.values(uniqueStudents);
+      const submissionsData = submissionsSnap.docs.map(d => d.data());
 
       // 4. Merge Data
       const merged: StudentGrade[] = finalStudentList.map(s => {

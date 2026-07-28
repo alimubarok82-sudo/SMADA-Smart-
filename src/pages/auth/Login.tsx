@@ -26,52 +26,54 @@ export default function Login() {
 
   const fetchInitialData = async () => {
     try {
-      // Fetch Classes - try without orderBy first to avoid index errors
       const classesSnap = await getDocs(collection(db, 'classes'));
       const classList = classesSnap.docs.map(d => d.data().name).filter(Boolean).sort();
       
-      // Fetch all students to group them
-      // In a real app we'd query by role, but for robustness we fetch and filter
-      const studentsSnap = await getDocs(collection(db, 'users'));
-      const grouped: Record<string, { id: string, name: string, password?: string }[]> = {};
+      setDbClasses(classList);
       
-      studentsSnap.docs.forEach(d => {
-        const data = d.data();
-        if (data.role !== 'siswa') return;
-        
-        const cId = data.classId || 'Unassigned';
-        if (!grouped[cId]) grouped[cId] = [];
-        grouped[cId].push({ 
-          id: d.id, 
-          name: data.displayName || 'Unknown',
-          password: data.password
-        });
-      });
-
-      // Sort students in each class
-      Object.keys(grouped).forEach(c => {
-        grouped[c].sort((a, b) => a.name.localeCompare(b.name));
-      });
-
-      // Combine classes from collection and from student records
-      const classesFromStudents = Object.keys(grouped);
-      const combinedClasses = Array.from(new Set([...classList, ...classesFromStudents]))
-        .filter(Boolean)
-        .sort();
-
-      setDbClasses(combinedClasses);
-      setDbStudents(grouped);
-      
-      // Select first class if current selection is invalid or empty
-      if (combinedClasses.length > 0 && (!selectedClass || !combinedClasses.includes(selectedClass))) {
-        setSelectedClass(combinedClasses[0]);
+      if (classList.length > 0 && !selectedClass) {
+        setSelectedClass(classList[0]);
       }
     } catch (error) {
-      console.error("Error fetching login data:", error);
+      console.error("Error fetching login classes:", error);
     } finally {
       setDataLoading(false);
     }
   };
+
+  useEffect(() => {
+    const fetchStudentsForClass = async () => {
+      if (!selectedClass) return;
+      if (dbStudents[selectedClass]) return; // Already fetched
+      
+      setDataLoading(true);
+      try {
+        const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'siswa'), where('classId', '==', selectedClass)));
+        
+        const students = studentsSnap.docs.map(d => {
+          const data = d.data();
+          return {
+            id: d.id,
+            name: data.displayName || 'Unknown',
+            password: data.password
+          };
+        });
+        
+        students.sort((a, b) => a.name.localeCompare(b.name));
+        
+        setDbStudents(prev => ({
+          ...prev,
+          [selectedClass]: students
+        }));
+      } catch (error) {
+        console.error("Error fetching students:", error);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+    
+    fetchStudentsForClass();
+  }, [selectedClass]);
 
   React.useEffect(() => {
     if (user) {

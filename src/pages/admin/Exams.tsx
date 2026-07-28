@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Plus, FileText, Settings, Play, Clock, Users, ChevronRight, BarChart3, Search, X, Check, Trash2, XCircle, Sparkles, Loader2, Image as ImageIcon, Upload, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where, limit } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where, limit, getCountFromServer } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { formatDate } from '../../lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -143,14 +143,8 @@ export default function Exams() {
       const snap = await getDocs(query(collection(db, 'classes'), orderBy('name')));
       const classList = snap.docs.map(doc => doc.data().name).filter(Boolean);
       
-      const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'siswa')));
-      const classesFromStudents = new Set<string>();
-      studentsSnap.docs.forEach(d => {
-        const cId = d.data().classId;
-        if (cId) classesFromStudents.add(cId);
-      });
       
-      const combined = Array.from(new Set([...classList, ...Array.from(classesFromStudents)]))
+      const combined = Array.from(new Set([...classList]))
         .filter(Boolean)
         .sort();
       
@@ -165,13 +159,9 @@ export default function Exams() {
 
   const fetchStats = async () => {
     try {
-      // 1. Total Students (Deduplicated)
-      const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'siswa')));
-      const uniqueStudentNames = new Set();
-      studentsSnap.docs.forEach(d => {
-        const data = d.data();
-        uniqueStudentNames.add(`${data.displayName}-${data.classId}`);
-      });
+      // 1. Total Students
+      const studentsCountSnap = await getCountFromServer(query(collection(db, 'users'), where('role', '==', 'siswa')));
+      const totalStudents = studentsCountSnap.data().count;
       
       // 2. Avg Grade (Sample recent for performance)
       const resultsSnap = await getDocs(query(collection(db, 'exam_results'), limit(50)));
@@ -193,7 +183,7 @@ export default function Exams() {
       const avgGrade = totalCount > 0 ? (totalPoints / totalCount).toFixed(1) : '0';
 
       setStats({
-        activeStudents: uniqueStudentNames.size,
+        activeStudents: totalStudents,
         avgGrade: parseFloat(avgGrade),
         totalAnswers: totalCount
       });
